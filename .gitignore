@@ -136,6 +136,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.*
+!.env.example
 .envrc
 .venv
 env/
@@ -206,6 +208,11 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+
+
+
+# Python virtualenv
+.venv/
 
 # macOS 
 .DS_Store
