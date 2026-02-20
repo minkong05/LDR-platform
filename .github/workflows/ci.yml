@@ -1,13 +1,25 @@
-name: ci
-
-on:
-  pull_request:
-  push:
-    branches: [ "main", "develop" ]
-
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ldr
+          POSTGRES_PASSWORD: ldr
+          POSTGRES_DB: ldr
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ldr -d ldr"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgresql+psycopg://ldr:ldr@localhost:5432/ldr
+      RUN_INTEGRATION_TESTS: "1"
 
     steps:
       - name: Checkout
