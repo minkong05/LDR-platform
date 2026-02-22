@@ -16,7 +16,14 @@ COPY pyproject.toml /app/pyproject.toml
 
 # Install deps (no editable install inside container)
 RUN pip install --no-cache-dir -U pip setuptools wheel \
-  && pip install --no-cache-dir "fastapi>=0.110" "uvicorn>=0.27"
+  && pip install --no-cache-dir \
+     "fastapi>=0.110" \
+     "uvicorn>=0.27" \
+     "sqlalchemy>=2.0" \
+     "alembic>=1.13" \
+     "psycopg[binary]>=3.2" \
+     "pydantic-settings>=2.2"
+
 
 # Copy backend code
 COPY apps/backend /app/apps/backend
