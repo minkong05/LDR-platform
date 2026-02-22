@@ -15,6 +15,7 @@ class Settings(BaseSettings):
 
     ENV: str = "local"
     DATABASE_URL: str
+    AGENT_TOKEN: str
 
 
 settings = Settings()
