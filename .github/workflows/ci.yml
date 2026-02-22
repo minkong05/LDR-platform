@@ -26,6 +26,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql+psycopg://ldr:ldr@localhost:5432/ldr
+      AGENT_TOKEN: dummy-token
       RUN_INTEGRATION_TESTS: "1"
 
     steps:
