@@ -4,6 +4,8 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
+from app.db.models.event import Event
+from app.db.session import SessionLocal
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -33,3 +35,20 @@ def apply_migrations_once():
     cfg.set_main_option("sqlalchemy.url", database_url)
 
     command.upgrade(cfg, "head")
+
+
+@pytest.fixture(scope="function", autouse=True)
+def clear_events_table():
+    """
+    For integration tests, ensure each test starts with an empty events table.
+    Prevents test-order dedupe failures.
+    """
+    if os.getenv("RUN_INTEGRATION_TESTS") != "1":
+        return
+
+    db = SessionLocal()
+    try:
+        db.query(Event).delete()
+        db.commit()
+    finally:
+        db.close()
