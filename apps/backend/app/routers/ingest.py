@@ -1,4 +1,5 @@
 from app.auth.agent import require_agent_token
+from app.auth.ingest_limits import rate_limit_ingest
 from app.db.models.event import Event
 from app.deps import get_db
 from app.schemas.ingest import IngestBatch
@@ -17,6 +18,7 @@ def ingest_events(
     batch: IngestBatch,
     db: Session = Depends(get_db),  # noqa: B008
     _auth: None = Depends(require_agent_token),
+    _limit: None = Depends(rate_limit_ingest),
 ):
     inserted = 0
     deduped = 0
