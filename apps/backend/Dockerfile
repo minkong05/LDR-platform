@@ -13,20 +13,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy only metadata first for better caching
 COPY pyproject.toml /app/pyproject.toml
+# Copy backend code
+COPY apps/backend /app/apps/backend
 
 # Install deps (no editable install inside container)
 RUN pip install --no-cache-dir -U pip setuptools wheel \
-  && pip install --no-cache-dir \
-     "fastapi>=0.110" \
-     "uvicorn>=0.27" \
-     "sqlalchemy>=2.0" \
-     "alembic>=1.13" \
-     "psycopg[binary]>=3.2" \
-     "pydantic-settings>=2.2"
+  && pip install --no-cache-dir .
 
 
-# Copy backend code
-COPY apps/backend /app/apps/backend
+
 
 EXPOSE 8000
 
