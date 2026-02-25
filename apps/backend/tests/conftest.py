@@ -6,6 +6,7 @@ from alembic import command
 from alembic.config import Config
 from app.db.models.event import Event
 from app.db.session import SessionLocal
+from app.security.rate_limit import limiter
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -52,3 +53,10 @@ def clear_events_table():
         db.commit()
     finally:
         db.close()
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    limiter._hits.clear()
+    yield
+    limiter._hits.clear()
