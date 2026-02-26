@@ -4,6 +4,7 @@ from app.db.models.event import Event
 from app.deps import get_db
 from app.schemas.ingest import IngestBatch
 from app.services.normalizer.mapper import normalize_event
+from app.services.normalizer.parsers.flask import parse_flask_json
 from app.services.normalizer.parsers.nginx import parse_nginx_access_line
 from app.utils.dedupe import compute_dedupe_hash
 from fastapi import APIRouter, Depends
@@ -33,6 +34,9 @@ def ingest_events(
                 parsed = parse_nginx_access_line(ev.raw["nginx_line"])
             except ValueError:
                 parsed = None
+
+        if ev.log_source == "flask" and isinstance(ev.raw, dict):
+            parsed = parse_flask_json(ev.raw)
 
         h = compute_dedupe_hash(
             log_source=ev.log_source,
