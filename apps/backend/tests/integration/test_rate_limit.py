@@ -1,3 +1,6 @@
+import os
+
+import pytest
 from app.auth import ingest_limits
 from app.main import app
 from fastapi.testclient import TestClient
@@ -8,6 +11,8 @@ def test_ingest_rate_limit_triggers_eventually(monkeypatch):
     We don't want to wait a whole minute in tests.
     So we monkeypatch the limit to something tiny.
     """
+    if os.getenv("RUN_INTEGRATION_TESTS") != "1":
+        pytest.skip("Set RUN_INTEGRATION_TESTS=1 to run integration tests")
 
     monkeypatch.setattr(
         ingest_limits,
