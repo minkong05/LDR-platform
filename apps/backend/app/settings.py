@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     )
 
     ENV: str = "local"
+    EVENT_RETENTION_DAYS: int = 14
     DATABASE_URL: str
     AGENT_TOKEN: str
 
