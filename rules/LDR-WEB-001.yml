@@ -1,0 +1,33 @@
+id: "LDR-WEB-001"
+name: "Brute force login failures from single IP"
+description: "Detects repeated failed login attempts from one source IP within a short window."
+enabled: true
+
+match:
+  event.action: "login_failed"
+  labels.route_group: "auth"
+  url.path: "/login"
+  http.request.method: "POST"
+
+condition:
+  type: threshold
+  group_by: ["source.ip"]
+  window: "5m"
+  count: 10
+  cooldown: "10m"
+
+output:
+  severity: high
+  confidence: medium
+  risk_score: 70
+  tags: ["auth", "bruteforce", "web"]
+  mitre:
+    tactic: "Credential Access"
+    technique_id: "T1110"
+    technique: "Brute Force"
+  false_positives:
+    - "Shared NAT (campus/office) causing many users to fail logins."
+    - "Load testing or QA environments."
+  response_recommendations:
+    - "Check other auth endpoints for the same IP."
+    - "If ongoing, block IP for 30 minutes."
