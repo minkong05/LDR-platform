@@ -2,6 +2,7 @@ from app.error_handlers import register_exception_handlers
 from app.logging import configure_logging
 from app.middleware.request_id import RequestIDMiddleware
 from app.routers.db_smoke import router as db_router
+from app.routers.entities import router as entities_router
 from app.routers.events import router as events_router
 from app.routers.health import router as health_router
 from app.routers.ingest import router as ingest_router
@@ -23,3 +24,4 @@ app.include_router(health_router, prefix="/v1")
 app.include_router(db_router, prefix="/v1")
 app.include_router(ingest_router, prefix="/v1")
 app.include_router(events_router, prefix="/v1")
+app.include_router(entities_router, prefix="/v1")
