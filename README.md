@@ -6,8 +6,23 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 # Lightweight Detection & Response Platform (LDR) for Web Services
-
 A mini SOC-style platform for small web services: ingest logs (Nginx + Flask + Docker), normalize into an ECS-inspired schema, run explainable detections, investigate entities (IP timelines/stats), and support safe response actions with full auditing.
+
+## Project status
+**Status:** In progress (Foundation/MVP complete)
+**Current focus (Week 1–4):** ingestion → normalization → storage → query APIs  
+**Next (Weeks 5–8):** detection rules + alert generation + alert APIs  
+**Later (Weeks 9–16):** investigation UI, evidence export, response actions + auditing
+
+## Roadmap
+- [x] Ingestion API (auth, dedupe, rate limiting)
+- [x] Normalization (nginx + flask) → ECS-inspired schema
+- [x] Event store + query endpoints (+ IP summary)
+- [x] Operational basics (structured logs, request-id, error handling, retention CLI)
+- [ ] Detection MVP (rule loader, thresholds, alert table)
+- [ ] Investigation UX (timeline, pivots, evidence export)
+- [ ] Response actions (block IP / revoke sessions) + full audit trail
+
 
 
 ## What’s implemented (current)
