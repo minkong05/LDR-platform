@@ -10,6 +10,7 @@ A mini SOC-style platform for small web services: ingest logs (Nginx + Flask + D
 
 ## Project status
 **Status:** In progress (Foundation/MVP complete)
+
 **Current focus (Week 1–4):** ingestion → normalization → storage → query APIs  
 **Next (Weeks 5–8):** detection rules + alert generation + alert APIs  
 **Later (Weeks 9–16):** investigation UI, evidence export, response actions + auditing
