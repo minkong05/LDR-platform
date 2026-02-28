@@ -55,7 +55,7 @@ def clear_events_table():
         db.close()
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="function", autouse=True)
 def reset_rate_limiter():
     limiter._hits.clear()
     yield
