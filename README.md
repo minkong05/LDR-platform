@@ -1,3 +1,10 @@
+![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi&logoColor=white)
+![Postgres](https://img.shields.io/badge/PostgreSQL-16-blue?logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white)
+![CI](https://github.com/minkong05/Flask-Learnpython/actions/workflows/ci.yml/badge.svg)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 # Lightweight Detection & Response Platform (LDR) for Web Services
 
 A mini SOC-style platform for small web services: ingest logs (Nginx + Flask + Docker), normalize into an ECS-inspired schema, run explainable detections, investigate entities (IP timelines/stats), and support safe response actions with full auditing.
@@ -36,7 +43,9 @@ See the step-by-step demo script: [demo-script.md](docs/demo/demo-script.md)
 
 ## Tests
 - Unit tests: `pytest -q`
-- Integration tests (requires Postgres): `docker compose up -d postgres \ RUN_INTEGRATION_TESTS=1 pytest -q`
+- Integration tests (requires Postgres): 
+  - `docker compose up -d postgres`
+  - `RUN_INTEGRATION_TESTS=1 pytest -q`
 - Run all (recommended): `./scripts/test_all.sh`
 
 
