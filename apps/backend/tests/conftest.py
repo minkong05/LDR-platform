@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
+from app.db.models.alert import Alert as AlertRow
 from app.db.models.event import Event
 from app.db.session import SessionLocal
 from app.security.rate_limit import limiter
@@ -60,3 +61,16 @@ def reset_rate_limiter():
     limiter._hits.clear()
     yield
     limiter._hits.clear()
+
+
+@pytest.fixture(scope="function", autouse=True)
+def clear_alerts_table():
+    if os.getenv("RUN_INTEGRATION_TESTS") != "1":
+        return
+
+    db = SessionLocal()
+    try:
+        db.query(AlertRow).delete()
+        db.commit()
+    finally:
+        db.close()
