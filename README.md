@@ -20,7 +20,7 @@ A mini SOC-style platform for small web services: ingest logs (Nginx + Flask + D
 - [x] Normalization (nginx + flask) → ECS-inspired schema
 - [x] Event store + query endpoints (+ IP summary)
 - [x] Operational basics (structured logs, request-id, error handling, retention CLI)
-- [ ] Detection MVP (rule loader, thresholds, alert table)
+- [x] Detection MVP (rule loader, thresholds, alert table)
 - [ ] Investigation UX (timeline, pivots, evidence export)
 - [ ] Response actions (block IP / revoke sessions) + full audit trail
 
