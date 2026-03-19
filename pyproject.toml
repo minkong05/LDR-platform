@@ -6,6 +6,7 @@ dependencies = [
   "fastapi>=0.110",
   "uvicorn>=0.27",
   "structlog>=24.0",
+  "pyyaml>=6.0",
 
   # DB
   "sqlalchemy>=2.0",
