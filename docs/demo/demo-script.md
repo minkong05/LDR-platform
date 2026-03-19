@@ -1,4 +1,4 @@
-# LDR Demo Script (Week 1)
+# LDR Demo Script (Month 1)
 
 ## 0) Start stack
 - `cp .env.example .env`
