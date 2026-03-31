@@ -24,3 +24,12 @@ body {
 .badge-severity-high     { background-color: #d29922; }
 .badge-severity-medium   { background-color: #1f6feb; }
 .badge-severity-low      { background-color: #238636; }
+
+/* Make table rows feel clickable */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.cursor-pointer:hover td {
+  background-color: #21262d !important;
+}
