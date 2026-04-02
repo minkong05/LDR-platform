@@ -43,7 +43,7 @@ for i in $(seq -w 1 12); do
       }]
     }"
   echo " → event $i"
-  sleep 1
+  sleep 0.1
 done
 ```
 

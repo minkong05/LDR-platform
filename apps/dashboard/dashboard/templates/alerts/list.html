@@ -87,7 +87,7 @@
       </thead>
       <tbody>
         {% for alert in alerts %}
-        <tr class="cursor-pointer" onclick="window.location='{{ url_for('alerts.alert_detail', alert_id=alert.id) }}'">
+        <tr>
 
           {# Severity badge #}
           <td>
