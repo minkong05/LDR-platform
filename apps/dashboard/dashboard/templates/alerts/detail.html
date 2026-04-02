@@ -1,7 +1,235 @@
 <!-- apps/dashboard/dashboard/templates/alerts/detail.html -->
+
 {% extends "base.html" %}
-{% block title %}Alert Detail — LDR{% endblock %}
+{% block title %}Alert {{ alert.id[:8] }} — LDR{% endblock %}
+
 {% block content %}
-<h4>Alert Detail</h4>
-<p class="text-muted">Detail view coming in Step 4.</p>
+
+{# ── Breadcrumb ───────────────────────────────────────────── #}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item">
+      <a href="{{ url_for('alerts.list_alerts') }}" class="text-warning">Alerts</a>
+    </li>
+    <li class="breadcrumb-item active text-muted">{{ alert.id[:8] }}…</li>
+  </ol>
+</nav>
+
+{# ── Page header ──────────────────────────────────────────── #}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <h4 class="mb-0">{{ alert.rule_name }}</h4>
+
+    {# Severity badge #}
+    <span class="badge badge-severity-{{ alert.severity }} fs-6">
+      {{ alert.severity | upper }}
+    </span>
+
+    {# Status badge #}
+    {% if alert.status == "open" %}
+      <span class="badge bg-danger fs-6">OPEN</span>
+    {% elif alert.status == "triaged" %}
+      <span class="badge bg-warning text-dark fs-6">TRIAGED</span>
+    {% else %}
+      <span class="badge bg-secondary fs-6">CLOSED</span>
+    {% endif %}
+  </div>
+
+  <a href="{{ url_for('alerts.list_alerts') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Back to alerts
+  </a>
+</div>
+
+<div class="row g-4">
+
+  {# ── Left column: alert metadata ─────────────────────────── #}
+  <div class="col-12 col-lg-7">
+
+    {# Core fields card #}
+    <div class="card mb-4">
+      <div class="card-header text-muted small">
+        <i class="bi bi-info-circle me-1"></i>Alert Details
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+
+          <dt class="col-5 text-muted">Rule ID</dt>
+          <dd class="col-7 font-monospace">{{ alert.rule_id }}</dd>
+
+          <dt class="col-5 text-muted">Alert ID</dt>
+          <dd class="col-7 font-monospace">{{ alert.id }}</dd>
+
+          <dt class="col-5 text-muted">Source IP</dt>
+          <dd class="col-7">
+            <a href="{{ url_for('entities.ip_summary', ip=alert.source_ip) }}"
+               class="text-info font-monospace">
+              {{ alert.source_ip }}
+              <i class="bi bi-box-arrow-up-right ms-1 small"></i>
+            </a>
+          </dd>
+
+          <dt class="col-5 text-muted">Risk Score</dt>
+          <dd class="col-7">
+            <div class="d-flex align-items-center gap-2" style="max-width:200px;">
+              <div class="progress flex-grow-1" style="height:8px;">
+                <div
+                  class="progress-bar
+                    {% if alert.risk_score >= 80 %}bg-danger
+                    {% elif alert.risk_score >= 50 %}bg-warning
+                    {% else %}bg-info{% endif %}"
+                  style="width:{{ alert.risk_score }}%"
+                ></div>
+              </div>
+              <span>{{ alert.risk_score }} / 100</span>
+            </div>
+          </dd>
+
+          <dt class="col-5 text-muted">Confidence</dt>
+          <dd class="col-7">{{ alert.confidence | capitalize }}</dd>
+
+          <dt class="col-5 text-muted">Event Count</dt>
+          <dd class="col-7">
+            <span class="badge bg-dark border border-secondary">
+              {{ alert.event_count }} events
+            </span>
+          </dd>
+
+          <dt class="col-5 text-muted">Detection Window</dt>
+          <dd class="col-7 small text-muted">
+            {{ alert.started_at[:19] | replace("T", " ") }}
+            →
+            {{ alert.ended_at[:19] | replace("T", " ") }}
+          </dd>
+
+          <dt class="col-5 text-muted">Alert Created</dt>
+          <dd class="col-7 small text-muted">
+            {{ alert.created_at[:19] | replace("T", " ") }}
+          </dd>
+
+          {% if alert.closure_reason %}
+          <dt class="col-5 text-muted">Closure Reason</dt>
+          <dd class="col-7">{{ alert.closure_reason }}</dd>
+          {% endif %}
+
+          {% if alert.notes %}
+          <dt class="col-5 text-muted">Notes</dt>
+          <dd class="col-7">{{ alert.notes }}</dd>
+          {% endif %}
+
+        </dl>
+      </div>
+    </div>
+
+    {# Detection context card — the JSON evidence blob #}
+    <div class="card">
+      <div class="card-header text-muted small">
+        <i class="bi bi-braces me-1"></i>Detection Context
+      </div>
+      <div class="card-body p-0">
+        {% if alert.context %}
+          <pre class="p-3 mb-0 small text-success"
+               style="background:#0d1117; border-radius:0 0 .375rem .375rem; overflow-x:auto;">{{ alert.context | tojson(indent=2) }}</pre>
+        {% else %}
+          <p class="text-muted small p-3 mb-0">No context recorded for this alert.</p>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  {# ── Right column: triage form ────────────────────────────── #}
+  <div class="col-12 col-lg-5">
+    <div class="card">
+      <div class="card-header text-muted small">
+        <i class="bi bi-pencil-square me-1"></i>Triage
+      </div>
+      <div class="card-body">
+        <form
+          method="post"
+          action="{{ url_for('alerts.triage_alert', alert_id=alert.id) }}"
+        >
+          {# Status #}
+          <div class="mb-3">
+            <label class="form-label small text-muted">Status</label>
+            <select name="status" class="form-select form-select-sm" required>
+              {% for s in ["open", "triaged", "closed"] %}
+                <option value="{{ s }}" {{ 'selected' if alert.status == s }}>
+                  {{ s | capitalize }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {# Closure reason — only meaningful when closing #}
+          <div class="mb-3">
+            <label class="form-label small text-muted">
+              Closure Reason
+              <span class="text-muted">(optional)</span>
+            </label>
+            <input
+              type="text"
+              name="closure_reason"
+              class="form-control form-control-sm"
+              placeholder="e.g. confirmed, false_positive, expected"
+              value="{{ alert.closure_reason or '' }}"
+            />
+          </div>
+
+          {# Analyst notes #}
+          <div class="mb-4">
+            <label class="form-label small text-muted">
+              Notes
+              <span class="text-muted">(optional)</span>
+            </label>
+            <textarea
+              name="notes"
+              class="form-control form-control-sm"
+              rows="4"
+              placeholder="Add investigation notes here…"
+            >{{ alert.notes or '' }}</textarea>
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-warning">
+              <i class="bi bi-check2-circle me-1"></i>Save Triage
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+    {# Quick-action links #}
+    <div class="card mt-3">
+      <div class="card-header text-muted small">
+        <i class="bi bi-lightning me-1"></i>Quick Actions
+      </div>
+      <div class="list-group list-group-flush">
+        
+        <a
+          href="{{ url_for('entities.ip_summary', ip=alert.source_ip) }}"
+          class="list-group-item list-group-item-action bg-transparent text-info"
+        >
+          <i class="bi bi-search me-2"></i>Investigate IP {{ alert.source_ip }}
+        </a>
+        
+        <a
+          href="{{ url_for('alerts.list_alerts', source_ip=alert.source_ip) }}"
+          class="list-group-item list-group-item-action bg-transparent text-light"
+        >
+          <i class="bi bi-funnel me-2"></i>All alerts from this IP
+        </a>
+        
+        <a
+          href="{{ url_for('alerts.list_alerts', status='open') }}"
+          class="list-group-item list-group-item-action bg-transparent text-light"
+        >
+          <i class="bi bi-bell me-2"></i>All open alerts
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 {% endblock %}

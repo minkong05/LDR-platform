@@ -57,4 +57,4 @@ def triage_alert(alert_id: str):
     except Exception as exc:
         flash(f"Update failed: {exc}", "danger")
 
-    return redirect(url_for("alerts.alert_detail", alert_id=alert_id))
+    return redirect(url_for("alerts.list_alerts", alert_id=alert_id))
