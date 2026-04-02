@@ -1,7 +1,213 @@
-<!-- 📄 apps/dashboard/dashboard/templates/entities/ip.html -->
+<!-- apps/dashboard/dashboard/templates/entities/ip.html -->
+
 {% extends "base.html" %}
-{% block title %}IP Investigation — LDR{% endblock %}
+{% block title %}IP {{ ip }} — LDR{% endblock %}
+
 {% block content %}
-<h4>IP: {{ ip }}</h4>
-<p class="text-muted">IP investigation view coming in Step 5.</p>
+
+{# ── Breadcrumb ───────────────────────────────────────────── #}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item">
+      <a href="{{ url_for('alerts.list_alerts') }}" class="text-warning">Alerts</a>
+    </li>
+    <li class="breadcrumb-item active text-muted">IP Investigation</li>
+  </ol>
+</nav>
+
+{% if summary %}
+
+{# ── Page header ──────────────────────────────────────────── #}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="mb-1">
+      <i class="bi bi-search text-info me-2"></i>
+      <span class="font-monospace">{{ ip }}</span>
+    </h4>
+    <span class="text-muted small">
+      First seen {{ summary.first_seen[:19] | replace("T", " ") if summary.first_seen else "—" }}
+      &nbsp;·&nbsp;
+      Last seen {{ summary.last_seen[:19] | replace("T", " ") if summary.last_seen else "—" }}
+    </span>
+  </div>
+
+  <a
+    href="{{ url_for('alerts.list_alerts', source_ip=ip) }}"
+    class="btn btn-sm btn-outline-warning"
+  >
+    <i class="bi bi-bell me-1"></i>Alerts from this IP
+  </a>
+</div>
+
+{# ── Summary stat cards ───────────────────────────────────── #}
+<div class="row g-3 mb-4">
+
+  <div class="col-12 col-md-4">
+    <div class="card text-center">
+      <div class="card-body py-3">
+        <div class="display-6 fw-bold text-info">{{ summary.total_events }}</div>
+        <div class="text-muted small mt-1">Total Events</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-4">
+    <div class="card text-center">
+      <div class="card-body py-3">
+        <div class="fw-bold text-light">
+          {{ summary.first_seen[:10] if summary.first_seen else "—" }}
+        </div>
+        <div class="text-muted small mt-1">First Seen</div>
+        {% if summary.first_seen %}
+          <div class="text-muted" style="font-size:0.75rem;">
+            {{ summary.first_seen[11:19] }} UTC
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-4">
+    <div class="card text-center">
+      <div class="card-body py-3">
+        <div class="fw-bold text-light">
+          {{ summary.last_seen[:10] if summary.last_seen else "—" }}
+        </div>
+        <div class="text-muted small mt-1">Last Seen</div>
+        {% if summary.last_seen %}
+          <div class="text-muted" style="font-size:0.75rem;">
+            {{ summary.last_seen[11:19] }} UTC
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{# ── Data row: top paths + status codes ───────────────────── #}
+<div class="row g-4">
+
+  {# Top paths #}
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
+      <div class="card-header text-muted small">
+        <i class="bi bi-signpost-split me-1"></i>Top Requested Paths
+      </div>
+
+      {% if summary.top_paths %}
+        {% set max_path_count = summary.top_paths[0].count %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0 align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th>Path</th>
+                <th class="text-end" style="width:80px;">Count</th>
+                <th style="width:120px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in summary.top_paths %}
+              <tr>
+                <td class="font-monospace small text-light">{{ item.key }}</td>
+                <td class="text-end text-muted small">{{ item.count }}</td>
+                <td>
+                  <div class="progress" style="height:6px;">
+                    <div
+                      class="progress-bar bg-info"
+                      style="width:{{ (item.count / max_path_count * 100) | round | int }}%"
+                    ></div>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="card-body text-muted small">No path data available.</div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  {# Status codes #}
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
+      <div class="card-header text-muted small">
+        <i class="bi bi-activity me-1"></i>HTTP Status Codes
+      </div>
+
+      {% if summary.status_codes %}
+        {% set max_status_count = summary.status_codes[0].count %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0 align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th>Status</th>
+                <th class="text-end" style="width:80px;">Count</th>
+                <th style="width:120px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in summary.status_codes %}
+              <tr>
+                <td>
+                  {# Colour-code by status class #}
+                  {% set code = item.key | int %}
+                  <span class="badge font-monospace
+                    {% if code >= 500 %}bg-danger
+                    {% elif code >= 400 %}bg-warning text-dark
+                    {% elif code >= 300 %}bg-info text-dark
+                    {% else %}bg-success
+                    {% endif %}
+                  ">
+                    {{ item.key }}
+                  </span>
+                </td>
+                <td class="text-end text-muted small">{{ item.count }}</td>
+                <td>
+                  <div class="progress" style="height:6px;">
+                    <div
+                      class="progress-bar
+                        {% set code = item.key | int %}
+                        {% if code >= 500 %}bg-danger
+                        {% elif code >= 400 %}bg-warning
+                        {% elif code >= 300 %}bg-info
+                        {% else %}bg-success{% endif %}"
+                      style="width:{{ (item.count / max_status_count * 100) | round | int }}%"
+                    ></div>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="card-body text-muted small">No status code data available.</div>
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+
+{% else %}
+{# ── Error / not found state ──────────────────────────────── #}
+<div class="card mt-4">
+  <div class="card-body text-center py-5">
+    <i class="bi bi-exclamation-triangle display-4 text-warning mb-3 d-block"></i>
+    <h5 class="text-muted">No data found for {{ ip }}</h5>
+    <p class="text-muted small mb-3">
+      This IP has no events in the current retention window,
+      or the backend could not be reached.
+    </p>
+    <a href="{{ url_for('alerts.list_alerts') }}" class="btn btn-sm btn-outline-warning">
+      <i class="bi bi-arrow-left me-1"></i>Back to alerts
+    </a>
+  </div>
+</div>
+{% endif %}
+
 {% endblock %}
