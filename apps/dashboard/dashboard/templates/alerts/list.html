@@ -1,0 +1,230 @@
+<!-- apps/dashboard/dashboard/templates/alerts/list.html -->
+{% extends "base.html" %}
+{% block title %}Alerts — LDR{% endblock %}
+
+{% block content %}
+
+{# ── Page header ──────────────────────────────────────────── #}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h4 class="mb-0">
+    <i class="bi bi-bell-fill text-warning me-2"></i>Alerts
+  </h4>
+  <span class="text-muted small">
+    Showing {{ alerts|length }} result{{ 's' if alerts|length != 1 else '' }}
+    {% if offset > 0 %} (offset {{ offset }}){% endif %}
+  </span>
+</div>
+
+{# ── Filter bar ───────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="get" action="{{ url_for('alerts.list_alerts') }}" class="row g-3 align-items-end">
+
+      <div class="col-12 col-md-3">
+        <label class="form-label small text-muted mb-1">Status</label>
+        <select name="status" class="form-select form-select-sm">
+          <option value="">All statuses</option>
+          {% for s in ["open", "triaged", "closed"] %}
+            <option value="{{ s }}" {{ 'selected' if filters.get('status') == s }}>
+              {{ s|capitalize }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-12 col-md-3">
+        <label class="form-label small text-muted mb-1">Severity</label>
+        <select name="severity" class="form-select form-select-sm">
+          <option value="">All severities</option>
+          {% for sv in ["critical", "high", "medium", "low"] %}
+            <option value="{{ sv }}" {{ 'selected' if filters.get('severity') == sv }}>
+              {{ sv|capitalize }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-12 col-md-4">
+        <label class="form-label small text-muted mb-1">Source IP</label>
+        <input
+          type="text"
+          name="source_ip"
+          class="form-control form-control-sm"
+          placeholder="e.g. 203.0.113.55"
+          value="{{ filters.get('source_ip', '') }}"
+        />
+      </div>
+
+      <div class="col-12 col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-warning w-100">
+          <i class="bi bi-funnel me-1"></i>Filter
+        </button>
+        <a href="{{ url_for('alerts.list_alerts') }}" class="btn btn-sm btn-outline-secondary w-100">
+          Clear
+        </a>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{# ── Alerts table ─────────────────────────────────────────── #}
+{% if alerts %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover table-sm mb-0 align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>Severity</th>
+          <th>Status</th>
+          <th>Rule</th>
+          <th>Source IP</th>
+          <th class="text-center">Risk</th>
+          <th class="text-center">Events</th>
+          <th>Detected</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for alert in alerts %}
+        <tr>
+
+          {# Severity badge #}
+          <td>
+            {% set sev = alert.severity %}
+            <span class="badge badge-severity-{{ sev }}">
+              {{ sev|upper }}
+            </span>
+          </td>
+
+          {# Status badge #}
+          <td>
+            {% if alert.status == "open" %}
+              <span class="badge bg-danger">OPEN</span>
+            {% elif alert.status == "triaged" %}
+              <span class="badge bg-warning text-dark">TRIAGED</span>
+            {% else %}
+              <span class="badge bg-secondary">CLOSED</span>
+            {% endif %}
+          </td>
+
+          {# Rule name — truncate long names #}
+          <td>
+            <span class="text-light" title="{{ alert.rule_name }}">
+              {{ alert.rule_name | truncate(40) }}
+            </span>
+            <div class="text-muted" style="font-size:0.75rem;">{{ alert.rule_id }}</div>
+          </td>
+
+          {# Source IP — links to IP investigation page #}
+          <td>
+            <a
+              href="{{ url_for('entities.ip_summary', ip=alert.source_ip) }}"
+              class="text-info font-monospace"
+              onclick="event.stopPropagation()"
+            >
+              {{ alert.source_ip }}
+            </a>
+          </td>
+
+          {# Risk score with mini progress bar #}
+          <td class="text-center" style="min-width:90px;">
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress flex-grow-1" style="height:6px;">
+                <div
+                  class="progress-bar
+                    {% if alert.risk_score >= 80 %}bg-danger
+                    {% elif alert.risk_score >= 50 %}bg-warning
+                    {% else %}bg-info{% endif %}"
+                  style="width:{{ alert.risk_score }}%"
+                ></div>
+              </div>
+              <span class="small">{{ alert.risk_score }}</span>
+            </div>
+          </td>
+
+          {# Event count #}
+          <td class="text-center">
+            <span class="badge bg-dark border border-secondary">{{ alert.event_count }}</span>
+          </td>
+
+          {# Timestamp — just the date+time, no microseconds #}
+          <td class="text-muted small text-nowrap">
+            {{ alert.created_at[:19] | replace("T", " ") }}
+          </td>
+
+          {# Investigate button #}
+          <td>
+            <a
+              href="{{ url_for('alerts.alert_detail', alert_id=alert.id) }}"
+              class="btn btn-sm btn-outline-light"
+              onclick="event.stopPropagation()"
+            >
+              <i class="bi bi-arrow-right"></i>
+            </a>
+          </td>
+
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# ── Pagination ────────────────────────────────────────────── #}
+<div class="d-flex justify-content-between align-items-center mt-3">
+  <div class="text-muted small">Page offset: {{ offset }}</div>
+  <div class="d-flex gap-2">
+
+    {# Previous — only show if we're past the first page #}
+    {% if offset > 0 %}
+      <a
+        href="{{ url_for('alerts.list_alerts',
+                  offset=[offset - limit, 0]|max,
+                  limit=limit,
+                  status=filters.get('status',''),
+                  severity=filters.get('severity',''),
+                  source_ip=filters.get('source_ip','')) }}"
+        class="btn btn-sm btn-outline-secondary"
+      >
+        <i class="bi bi-chevron-left me-1"></i>Previous
+      </a>
+    {% endif %}
+
+    {# Next — only show if this page is full (more might exist) #}
+    {% if alerts|length == limit %}
+      <a
+        href="{{ url_for('alerts.list_alerts',
+                  offset=offset + limit,
+                  limit=limit,
+                  status=filters.get('status',''),
+                  severity=filters.get('severity',''),
+                  source_ip=filters.get('source_ip','')) }}"
+        class="btn btn-sm btn-outline-secondary"
+      >
+        Next<i class="bi bi-chevron-right ms-1"></i>
+      </a>
+    {% endif %}
+
+  </div>
+</div>
+
+{% else %}
+{# ── Empty state ───────────────────────────────────────────── #}
+<div class="card">
+  <div class="card-body text-center py-5">
+    <i class="bi bi-shield-check display-4 text-success mb-3 d-block"></i>
+    <h5 class="text-muted">No alerts found</h5>
+    <p class="text-muted small mb-0">
+      {% if filters.get('status') or filters.get('severity') or filters.get('source_ip') %}
+        No alerts match the current filters.
+        <a href="{{ url_for('alerts.list_alerts') }}">Clear filters</a>
+      {% else %}
+        No alerts have been generated yet. The detection worker checks every 30 seconds.
+      {% endif %}
+    </p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
