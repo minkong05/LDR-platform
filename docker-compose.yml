@@ -13,10 +13,12 @@ services:
       timeout: 3s
       retries: 20
 
+
   redis:
     image: redis:7
     ports:
       - "6379:6379"
+
 
   backend:
     build:
@@ -43,6 +45,7 @@ services:
       timeout: 3s
       retries: 20
 
+
   worker:
     build:
       context: .
@@ -61,3 +64,24 @@ services:
         condition: service_started
       backend:
         condition: service_healthy
+
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: ./apps/dashboard/Dockerfile
+    env_file:
+      - .env
+    environment:
+      LDR_API_BASE: http://backend:8000
+      DASHBOARD_SECRET_KEY: ${SECRET_KEY}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "5001:5001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5001/health >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10

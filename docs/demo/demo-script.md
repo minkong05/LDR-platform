@@ -19,7 +19,35 @@ curl -X POST http://localhost:8000/v1/ingest/events \
 ## 3) Show investigation-style IP summary
 - `curl "http://localhost:8000/v1/entities/ip/203.0.113.55" | jq .`
 
-## 4) Show ingestion guardrail (rate limiting)
+## 4) Trigger an alert event (flask login failure)
+```bash
+for i in $(seq -w 1 12); do
+  curl -s -X POST http://localhost:8000/v1/ingest/events \
+    -H "Content-Type: application/json" \
+    -H "X-Agent-Token: dev-agent-token-change-me" \
+    -d "{
+      \"events\": [{
+        \"event_timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+        \"log_source\": \"flask\",
+        \"service_name\": \"demo-web\",
+        \"source_ip\": \"203.0.113.55\",
+        \"raw\": {
+          \"ip\": \"203.0.113.55\",
+          \"method\": \"POST\",
+          \"path\": \"/login\",
+          \"status\": 401,
+          \"action\": \"login_failed\",
+          \"route_group\": \"auth\",
+          \"username\": \"user${i}\"
+        }
+      }]
+    }"
+  echo " → event $i"
+  sleep 0.1
+done
+```
+
+## 5) Show ingestion guardrail (rate limiting)
 Run ~80 quick requests and observe 429s after the limit:
 ```bash
 TOKEN="$(grep '^AGENT_TOKEN=' .env | cut -d= -f2-)"
