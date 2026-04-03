@@ -1,0 +1,34 @@
+# rules/LDR-WEB-003.yml
+id: "LDR-WEB-003"
+name: "Admin panel probing from single IP"
+description: >
+  Detects repeated 403 responses on /admin from one IP, indicating an attacker
+  is probing for administrative access they do not have.
+enabled: true
+
+match:
+  url.path: "/admin"
+  http.response.status_code: "403"
+
+condition:
+  type: threshold
+  group_by: ["source.ip"]
+  window: "10m"
+  count: 5
+  cooldown: "20m"
+
+output:
+  severity: medium
+  confidence: high
+  risk_score: 55
+  tags: ["recon", "admin", "web"]
+  mitre:
+    tactic: "Discovery"
+    technique_id: "T1595.002"
+    technique: "Vulnerability Scanning"
+  false_positives:
+    - "Internal monitoring or uptime checks hitting /admin without credentials."
+    - "Developer accidentally hitting /admin with wrong session."
+  response_recommendations:
+    - "Check if the IP has any prior successful /admin access in the events log."
+    - "Investigate whether /admin has any public-facing exposure it shouldn't."

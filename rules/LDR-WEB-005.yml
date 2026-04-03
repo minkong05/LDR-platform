@@ -1,0 +1,35 @@
+# rules/LDR-WEB-005.yml
+id: "LDR-WEB-005"
+name: "Successful login after repeated failures"
+description: >
+  Detects a login success from an IP that has been generating auth failures.
+  A single success is enough to flag — this pattern is consistent with a
+  brute force attempt that eventually found a valid password.
+enabled: true
+
+match:
+  event.action: "login_success"
+  labels.route_group: "auth"
+
+condition:
+  type: threshold
+  group_by: ["source.ip"]
+  window: "1m"
+  count: 1
+  cooldown: "30m"
+
+output:
+  severity: low
+  confidence: low
+  risk_score: 30
+  tags: ["auth", "post-bruteforce", "web"]
+  mitre:
+    tactic: "Initial Access"
+    technique_id: "T1078"
+    technique: "Valid Accounts"
+  false_positives:
+    - "Legitimate user successfully logging in after forgetting their password."
+    - "Password reset flow completing normally."
+  response_recommendations:
+    - "Correlate with LDR-WEB-001 or LDR-WEB-002 — if same IP fired those, escalate."
+    - "Check which account was accessed and review its recent activity."

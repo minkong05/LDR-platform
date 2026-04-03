@@ -1,0 +1,35 @@
+# rules/LDR-WEB-006.yml
+id: "LDR-WEB-006"
+name: "Account enumeration via repeated login failures"
+description: >
+  Detects a high volume of login failures from one IP across a slightly longer
+  window, consistent with username enumeration where the attacker is probing
+  which accounts exist before launching a targeted attack.
+enabled: true
+
+match:
+  event.action: "login_failed"
+  event.outcome: "failure"
+
+condition:
+  type: threshold
+  group_by: ["source.ip"]
+  window: "5m"
+  count: 15
+  cooldown: "10m"
+
+output:
+  severity: high
+  confidence: medium
+  risk_score: 65
+  tags: ["auth", "enumeration", "web"]
+  mitre:
+    tactic: "Reconnaissance"
+    technique_id: "T1589.001"
+    technique: "Gather Victim Identity Information: Credentials"
+  false_positives:
+    - "Shared NAT with many users hitting a broken login form."
+    - "Load test simulating auth failures."
+  response_recommendations:
+    - "Check if the usernames in the failed logins are real accounts — enumeration will show a mix of hits and misses."
+    - "Correlate with LDR-WEB-005 to see if enumeration led to a successful login."
