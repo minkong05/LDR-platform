@@ -1,0 +1,34 @@
+# rules/LDR-WEB-002.yml
+id: "LDR-WEB-002"
+name: "Credential stuffing — high 401 rate from single IP"
+description: >
+  Detects a high volume of HTTP 401 responses from one source IP in a short
+  window, suggesting automated credential stuffing across multiple accounts.
+enabled: true
+
+match:
+  http.response.status_code: "401"
+
+condition:
+  type: threshold
+  group_by: ["source.ip"]
+  window: "2m"
+  count: 20
+  cooldown: "15m"
+
+output:
+  severity: high
+  confidence: medium
+  risk_score: 75
+  tags: ["auth", "credential-stuffing", "web"]
+  mitre:
+    tactic: "Credential Access"
+    technique_id: "T1110.004"
+    technique: "Credential Stuffing"
+  false_positives:
+    - "Shared NAT or proxy causing many users to hit auth failures simultaneously."
+    - "Misconfigured client repeatedly sending stale credentials."
+  response_recommendations:
+    - "Check if the 401s span multiple usernames — true stuffing will."
+    - "Correlate with LDR-WEB-001 (brute force) from same IP."
+    - "Consider temporary IP block if rate continues after 15m cooldown."
