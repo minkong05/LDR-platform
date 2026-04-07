@@ -40,9 +40,9 @@ def _assert_alert_exists(rule_id: str, source_ip: str) -> None:
     assert r.status_code == 200
     items = r.json()["items"]
     matching = [a for a in items if a["rule_id"] == rule_id]
-    assert (
-        len(matching) >= 1
-    ), f"Expected alert for {rule_id} from {source_ip}, got: {[a['rule_id'] for a in items]}"
+    assert len(matching) >= 1, (
+        f"Expected alert for {rule_id} from {source_ip}, got: {[a['rule_id'] for a in items]}"
+    )
 
 
 def _rule_file(tmp_path: Path, rule_id: str) -> Path:
