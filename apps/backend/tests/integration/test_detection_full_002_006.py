@@ -109,7 +109,7 @@ def test_integration_web_003(tmp_path: Path):
     for i in range(5):
         ts = (base + timedelta(seconds=i * 30)).strftime("%Y-%m-%dT%H:%M:%SZ")
         nginx_line = (
-            f"{ip} - - [2026-03-01T11:00:{i*30:02d}+00:00] "
+            f"{ip} - - [2026-03-01T11:00:{i * 30:02d}+00:00] "
             f'"GET /admin HTTP/1.1" 403 89 "-" "curl/7.88"'
         )
         events.append(
@@ -147,7 +147,7 @@ def test_integration_web_004(tmp_path: Path):
         ts = (base + timedelta(seconds=i * 5)).strftime("%Y-%m-%dT%H:%M:%SZ")
         path = f"/probe/path{i}"
         nginx_line = (
-            f"{ip} - - [2026-03-01T12:00:{i*5:02d}+00:00] "
+            f"{ip} - - [2026-03-01T12:00:{i * 5:02d}+00:00] "
             f'"GET {path} HTTP/1.1" 404 0 "-" "gobuster/3.6"'
         )
         events.append(
