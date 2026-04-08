@@ -1,3 +1,4 @@
+# rules/LDR-WEB-001.yml
 id: "LDR-WEB-001"
 name: "Brute force login failures from single IP"
 description: "Detects repeated failed login attempts from one source IP within a short window."

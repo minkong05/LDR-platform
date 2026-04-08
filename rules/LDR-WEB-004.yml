@@ -1,0 +1,34 @@
+# rules/LDR-WEB-004.yml
+id: "LDR-WEB-004"
+name: "Path scanning — 404 storm from single IP"
+description: >
+  Detects a rapid burst of 404 responses from one IP, consistent with automated
+  directory and endpoint scanning (dirbuster, ffuf, gobuster etc.).
+enabled: true
+
+match:
+  http.response.status_code: "404"
+
+condition:
+  type: threshold
+  group_by: ["source.ip"]
+  window: "3m"
+  count: 30
+  cooldown: "10m"
+
+output:
+  severity: medium
+  confidence: high
+  risk_score: 50
+  tags: ["recon", "scanning", "web"]
+  mitre:
+    tactic: "Reconnaissance"
+    technique_id: "T1595.003"
+    technique: "Wordlist Scanning"
+  false_positives:
+    - "Broken internal links causing legitimate users to hit many 404s."
+    - "Search engine crawlers on a poorly configured site."
+    - "Automated integration tests hitting non-existent endpoints."
+  response_recommendations:
+    - "Look at the paths being hit — scanner wordlists have distinctive patterns."
+    - "Check user agent — scanners often use generic or empty UAs."
