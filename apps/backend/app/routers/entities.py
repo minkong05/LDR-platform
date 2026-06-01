@@ -1,6 +1,12 @@
+# 📄 apps/backend/app/routers/entities.py
+
+from datetime import datetime, timezone
+
+from app.db.models.alert import Alert
 from app.db.models.event import Event
 from app.deps import get_db
-from app.schemas.entities import IPSummaryOut, TopItem
+from app.schemas.entities import IPRiskOut, IPSummaryOut, SeverityBreakdown, TopItem
+from app.services.risk.scorer import compute_ip_risk_score
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -61,4 +67,37 @@ def ip_summary(
         total_events=int(total),
         top_paths=top_paths,
         status_codes=status_codes,
+    )
+
+
+@router.get("/entities/ip/{ip}/risk", response_model=IPRiskOut)
+def ip_risk(
+    ip: str,
+    db: Session = Depends(get_db),  # noqa: B008
+):
+    """
+    Compute a live risk score for an IP based on its open/triaged alerts.
+    Closed alerts are excluded — triaging an alert reduces the score.
+    """
+    rows = db.execute(
+        select(Alert.severity, Alert.status, Alert.created_at).where(Alert.source_ip == ip)
+    ).all()
+
+    alerts_for_scorer = [
+        {
+            "severity": row.severity,
+            "status": row.status,
+            "created_at": row.created_at,
+        }
+        for row in rows
+    ]
+
+    result = compute_ip_risk_score(alerts_for_scorer, now=datetime.now(timezone.utc))
+
+    return IPRiskOut(
+        ip=ip,
+        score=result["score"],
+        label=result["label"],
+        contributing_alerts=result["contributing_alerts"],
+        breakdown=SeverityBreakdown(**result["breakdown"]),
     )

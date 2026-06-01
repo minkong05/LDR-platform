@@ -21,7 +21,7 @@ curl -X POST http://localhost:8000/v1/ingest/events \
 
 ## 4) Trigger an alert event (flask login failure)
 ```bash
-for i in $(seq -w 1 12); do
+for i in $(seq -w 1 30); do
   curl -s -X POST http://localhost:8000/v1/ingest/events \
     -H "Content-Type: application/json" \
     -H "X-Agent-Token: dev-agent-token-change-me" \
