@@ -19,11 +19,30 @@
 
 {# ── Page header ──────────────────────────────────────────── #}
 <div class="d-flex align-items-center justify-content-between mb-4">
-  <div>
-    <h4 class="mb-1">
+  <div class="d-flex align-items-center gap-3 flex-wrap">
+    <h4 class="mb-0">
       <i class="bi bi-search text-info me-2"></i>
       <span class="font-monospace">{{ ip }}</span>
     </h4>
+
+    {# ── Risk badge (if available) ────────────────────────── #}
+    {% if risk %}
+      {% set label = risk.label %}
+      <span class="badge fs-6
+        {% if label == 'critical' %}bg-danger
+        {% elif label == 'high' %}bg-warning text-dark
+        {% elif label == 'medium' %}bg-primary
+        {% elif label == 'low' %}bg-secondary
+        {% else %}bg-dark border border-secondary text-muted{% endif %}
+      ">
+        {% if label == 'none' %}
+          <i class="bi bi-shield-check me-1"></i>No risk
+        {% else %}
+          <i class="bi bi-shield-exclamation me-1"></i>Risk {{ risk.score }}/100
+        {% endif %}
+      </span>
+    {% endif %}
+
     <span class="text-muted small">
       First seen {{ summary.first_seen[:19] | replace("T", " ") if summary.first_seen else "—" }}
       &nbsp;·&nbsp;
@@ -84,6 +103,80 @@
   </div>
 
 </div>
+
+{# ── Risk score card (full breakdown) ────────────────────── #}
+{% if risk and risk.label != 'none' %}
+<div class="card mb-4">
+  <div class="card-header text-muted small">
+    <i class="bi bi-graph-up-arrow me-1"></i>Risk Score
+  </div>
+  <div class="card-body">
+    <div class="row align-items-center g-3">
+
+      {# Score + progress bar #}
+      <div class="col-12 col-md-5">
+        <div class="d-flex align-items-center gap-3">
+          <div class="display-5 fw-bold
+            {% if risk.label == 'critical' %}text-danger
+            {% elif risk.label == 'high' %}text-warning
+            {% elif risk.label == 'medium' %}text-primary
+            {% else %}text-secondary{% endif %}
+          ">{{ risk.score }}</div>
+          <div class="flex-grow-1">
+            <div class="progress" style="height:10px;">
+              <div class="progress-bar
+                {% if risk.label == 'critical' %}bg-danger
+                {% elif risk.label == 'high' %}bg-warning
+                {% elif risk.label == 'medium' %}bg-primary
+                {% else %}bg-secondary{% endif %}"
+                style="width:{{ risk.score }}%"
+              ></div>
+            </div>
+            <div class="text-muted small mt-1">
+              {{ risk.contributing_alerts }} active alert{{ 's' if risk.contributing_alerts != 1 else '' }}
+              contributing
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Breakdown pills #}
+      <div class="col-12 col-md-7">
+        <div class="d-flex flex-wrap gap-2">
+          {% if risk.breakdown.critical > 0 %}
+            <span class="badge bg-danger px-3 py-2">
+              <i class="bi bi-exclamation-octagon me-1"></i>
+              {{ risk.breakdown.critical }} critical
+            </span>
+          {% endif %}
+          {% if risk.breakdown.high > 0 %}
+            <span class="badge bg-warning text-dark px-3 py-2">
+              <i class="bi bi-exclamation-triangle me-1"></i>
+              {{ risk.breakdown.high }} high
+            </span>
+          {% endif %}
+          {% if risk.breakdown.medium > 0 %}
+            <span class="badge bg-primary px-3 py-2">
+              <i class="bi bi-exclamation-circle me-1"></i>
+              {{ risk.breakdown.medium }} medium
+            </span>
+          {% endif %}
+          {% if risk.breakdown.low > 0 %}
+            <span class="badge bg-secondary px-3 py-2">
+              <i class="bi bi-info-circle me-1"></i>
+              {{ risk.breakdown.low }} low
+            </span>
+          {% endif %}
+        </div>
+        <div class="text-muted mt-2" style="font-size:0.75rem;">
+          Score = Σ(severity weight × time decay). Closed alerts excluded.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endif %}
 
 {# ── Data row: top paths + status codes ───────────────────── #}
 <div class="row g-4">
@@ -153,7 +246,6 @@
               {% for item in summary.status_codes %}
               <tr>
                 <td>
-                  {# Colour-code by status class #}
                   {% set code = item.key | int %}
                   <span class="badge font-monospace
                     {% if code >= 500 %}bg-danger
