@@ -18,14 +18,14 @@
 {% if summary %}
 
 {# ── Page header ──────────────────────────────────────────── #}
-<div class="d-flex align-items-center justify-content-between mb-4">
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
   <div class="d-flex align-items-center gap-3 flex-wrap">
     <h4 class="mb-0">
       <i class="bi bi-search text-info me-2"></i>
       <span class="font-monospace">{{ ip }}</span>
     </h4>
 
-    {# ── Risk badge (if available) ────────────────────────── #}
+    {# Risk badge #}
     {% if risk %}
       {% set label = risk.label %}
       <span class="badge fs-6
@@ -50,12 +50,78 @@
     </span>
   </div>
 
-  <a
-    href="{{ url_for('alerts.list_alerts', source_ip=ip) }}"
-    class="btn btn-sm btn-outline-warning"
-  >
-    <i class="bi bi-bell me-1"></i>Alerts from this IP
-  </a>
+  {# Action buttons #}
+  <div class="d-flex gap-2 flex-wrap">
+    <a
+      href="{{ url_for('alerts.list_alerts', source_ip=ip) }}"
+      class="btn btn-sm btn-outline-warning"
+    >
+      <i class="bi bi-bell me-1"></i>Alerts from this IP
+    </a>
+
+    <button
+      class="btn btn-sm btn-outline-info"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#export-panel"
+      aria-expanded="false"
+    >
+      <i class="bi bi-download me-1"></i>Export Evidence
+    </button>
+  </div>
+</div>
+
+{# ── Evidence export panel (collapsible) ──────────────────── #}
+<div class="collapse mb-4" id="export-panel">
+  <div class="card border-info">
+    <div class="card-header text-info small">
+      <i class="bi bi-archive me-1"></i>Export Evidence Bundle
+    </div>
+    <div class="card-body">
+      <p class="text-muted small mb-3">
+        Downloads a ZIP containing <code>summary.md</code>, <code>alerts.json</code>,
+        and <code>events.json</code> for this IP. Optionally scope to a time range.
+      </p>
+
+      <form
+        method="get"
+        action="{{ url_for('entities.ip_evidence', ip=ip) }}"
+        class="row g-3 align-items-end"
+      >
+        <div class="col-12 col-md-4">
+          <label class="form-label small text-muted mb-1">
+            Start <span class="text-muted">(optional)</span>
+          </label>
+          <input
+            type="datetime-local"
+            name="start"
+            class="form-control form-control-sm"
+          />
+        </div>
+
+        <div class="col-12 col-md-4">
+          <label class="form-label small text-muted mb-1">
+            End <span class="text-muted">(optional)</span>
+          </label>
+          <input
+            type="datetime-local"
+            name="end"
+            class="form-control form-control-sm"
+          />
+        </div>
+
+        <div class="col-12 col-md-4">
+          <button type="submit" class="btn btn-sm btn-info w-100">
+            <i class="bi bi-file-zip me-1"></i>Download ZIP
+          </button>
+        </div>
+      </form>
+
+      <div class="text-muted mt-2" style="font-size:0.75rem;">
+        Leave both fields empty to export all data for this IP.
+      </div>
+    </div>
+  </div>
 </div>
 
 {# ── Summary stat cards ───────────────────────────────────── #}
@@ -104,7 +170,7 @@
 
 </div>
 
-{# ── Risk score card (full breakdown) ────────────────────── #}
+{# ── Risk score card ──────────────────────────────────────── #}
 {% if risk and risk.label != 'none' %}
 <div class="card mb-4">
   <div class="card-header text-muted small">
@@ -113,7 +179,6 @@
   <div class="card-body">
     <div class="row align-items-center g-3">
 
-      {# Score + progress bar #}
       <div class="col-12 col-md-5">
         <div class="d-flex align-items-center gap-3">
           <div class="display-5 fw-bold
@@ -140,7 +205,6 @@
         </div>
       </div>
 
-      {# Breakdown pills #}
       <div class="col-12 col-md-7">
         <div class="d-flex flex-wrap gap-2">
           {% if risk.breakdown.critical > 0 %}
@@ -181,13 +245,11 @@
 {# ── Data row: top paths + status codes ───────────────────── #}
 <div class="row g-4">
 
-  {# Top paths #}
   <div class="col-12 col-lg-6">
     <div class="card h-100">
       <div class="card-header text-muted small">
         <i class="bi bi-signpost-split me-1"></i>Top Requested Paths
       </div>
-
       {% if summary.top_paths %}
         {% set max_path_count = summary.top_paths[0].count %}
         <div class="table-responsive">
@@ -220,17 +282,14 @@
       {% else %}
         <div class="card-body text-muted small">No path data available.</div>
       {% endif %}
-
     </div>
   </div>
 
-  {# Status codes #}
   <div class="col-12 col-lg-6">
     <div class="card h-100">
       <div class="card-header text-muted small">
         <i class="bi bi-activity me-1"></i>HTTP Status Codes
       </div>
-
       {% if summary.status_codes %}
         {% set max_status_count = summary.status_codes[0].count %}
         <div class="table-responsive">
@@ -251,11 +310,8 @@
                     {% if code >= 500 %}bg-danger
                     {% elif code >= 400 %}bg-warning text-dark
                     {% elif code >= 300 %}bg-info text-dark
-                    {% else %}bg-success
-                    {% endif %}
-                  ">
-                    {{ item.key }}
-                  </span>
+                    {% else %}bg-success{% endif %}
+                  ">{{ item.key }}</span>
                 </td>
                 <td class="text-end text-muted small">{{ item.count }}</td>
                 <td>
@@ -279,14 +335,12 @@
       {% else %}
         <div class="card-body text-muted small">No status code data available.</div>
       {% endif %}
-
     </div>
   </div>
 
 </div>
 
 {% else %}
-{# ── Error / not found state ──────────────────────────────── #}
 <div class="card mt-4">
   <div class="card-body text-center py-5">
     <i class="bi bi-exclamation-triangle display-4 text-warning mb-3 d-block"></i>
