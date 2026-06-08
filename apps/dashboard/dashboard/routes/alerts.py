@@ -1,4 +1,5 @@
 # 📄 apps/dashboard/dashboard/routes/alerts.py
+
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from dashboard import api_client
@@ -12,7 +13,6 @@ def list_alerts():
         "limit": request.args.get("limit", 50),
         "offset": request.args.get("offset", 0),
     }
-    # Optional filters
     for key in ("status", "severity", "source_ip"):
         val = request.args.get(key)
         if val:
@@ -24,12 +24,24 @@ def list_alerts():
         data = {"items": [], "limit": 50, "offset": 0}
         flash(f"Could not reach LDR API: {exc}", "danger")
 
+    # Fetch risk scores for unique IPs on this page
+    # One request per unique IP — small N in practice (≤50 rows, usually far fewer unique IPs)
+    alerts = data["items"]
+    unique_ips = list({a["source_ip"] for a in alerts})
+    risk_by_ip: dict[str, dict] = {}
+    for ip in unique_ips:
+        try:
+            risk_by_ip[ip] = api_client.get(f"/v1/entities/ip/{ip}/risk")
+        except Exception:
+            pass  # missing risk is non-fatal
+
     return render_template(
         "alerts/list.html",
-        alerts=data["items"],
+        alerts=alerts,
         limit=int(data["limit"]),
         offset=int(data["offset"]),
         filters=request.args,
+        risk_by_ip=risk_by_ip,
     )
 
 
