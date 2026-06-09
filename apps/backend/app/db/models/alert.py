@@ -1,3 +1,5 @@
+# 📄 apps/backend/app/db/models/alert.py
+
 import uuid
 from datetime import datetime, timezone
 
