@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 
 from app.db.base import Base
-from sqlalchemy import DateTime, Index, String
+from sqlalchemy import JSON, DateTime, Index, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -30,7 +30,9 @@ class AuditLog(Base):
     target_ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     # Freeform detail — store alert_id, rule_id, expiry, email recipient, etc.
-    detail: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    detail: Mapped[dict] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"), nullable=False, default=dict
+    )
 
     __table_args__ = (
         Index("ix_audit_log_created_at", "created_at"),
