@@ -3,49 +3,19 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from app.db.base import Base
 from app.db.models.audit_log import AuditLog
 from app.db.models.blocked_ip import BlockedIP
 from app.services.response.block import BlockService
-from sqlalchemy import create_engine, select, text
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 
 @pytest.fixture()
 def db():
-    """In-memory SQLite session for block service tests.
-
-    We create tables via raw DDL instead of Base.metadata.create_all() to
-    avoid JSONB columns (audit_log.detail, alerts.context, events.raw, etc.)
-    that are PostgreSQL-only and crash SQLite's DDL compiler.
-    """
+    """In-memory SQLite session for block service tests."""
     engine = create_engine("sqlite:///:memory:", future=True)
-    with engine.connect() as conn:
-        conn.execute(
-            text("""
-            CREATE TABLE blocked_ips (
-                id          TEXT PRIMARY KEY,
-                ip          TEXT NOT NULL,
-                blocked_at  DATETIME NOT NULL,
-                expires_at  DATETIME,
-                is_active   INTEGER NOT NULL DEFAULT 1,
-                reason      TEXT,
-                blocked_by  TEXT
-            )
-        """)
-        )
-        conn.execute(
-            text("""
-            CREATE TABLE audit_log (
-                id          TEXT PRIMARY KEY,
-                created_at  DATETIME NOT NULL,
-                action      TEXT NOT NULL,
-                actor       TEXT NOT NULL,
-                target_ip   TEXT,
-                detail      TEXT NOT NULL DEFAULT '{}'
-            )
-        """)
-        )
-        conn.commit()
+    Base.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
 

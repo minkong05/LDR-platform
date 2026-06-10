@@ -37,7 +37,7 @@ def ip_summary(
         select(func.max(Event.event_timestamp)).where(Event.source_ip == ip)
     ).scalar_one()
 
-    path_expr = Event.normalized["url"]["path"].astext
+    path_expr = Event.normalized["url"]["path"].as_string()
     top_paths_rows = db.execute(
         select(path_expr, func.count())
         .where(Event.source_ip == ip)
@@ -48,7 +48,7 @@ def ip_summary(
         .limit(10)
     ).all()
 
-    status_expr = Event.normalized["http"]["response"]["status_code"].astext
+    status_expr = Event.normalized["http"]["response"]["status_code"].as_string()
     status_rows = db.execute(
         select(status_expr, func.count())
         .where(Event.source_ip == ip)

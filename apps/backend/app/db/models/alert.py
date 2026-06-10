@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 
 from app.db.base import Base
-from sqlalchemy import DateTime, Index, Integer, String, Text
+from sqlalchemy import JSON, DateTime, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -40,7 +40,9 @@ class Alert(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # store supporting context (e.g. top N event IDs, matched fields snapshot)
-    context: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    context: Mapped[dict] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"), nullable=False, default=dict
+    )
 
     __table_args__ = (
         Index("ix_alerts_created_at", "created_at"),
