@@ -1,3 +1,5 @@
+# 📄 apps/backend/app/main.py
+
 from app.error_handlers import register_exception_handlers
 from app.logging import configure_logging
 from app.middleware.request_id import RequestIDMiddleware
@@ -7,6 +9,7 @@ from app.routers.entities import router as entities_router
 from app.routers.events import router as events_router
 from app.routers.health import router as health_router
 from app.routers.ingest import router as ingest_router
+from app.routers.response import router as response_router
 from app.settings import settings
 from fastapi import FastAPI
 
@@ -27,3 +30,4 @@ app.include_router(ingest_router, prefix="/v1")
 app.include_router(events_router, prefix="/v1")
 app.include_router(entities_router, prefix="/v1")
 app.include_router(alerts_router, prefix="/v1")
+app.include_router(response_router, prefix="/v1")
