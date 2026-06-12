@@ -223,3 +223,7 @@ __marimo__/
 ._*
 .Spotlight-V100
 .Trashes
+
+
+# evidence_
+echo "evidence_*.zip" >> .gitignore

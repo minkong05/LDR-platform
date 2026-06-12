@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from app.db.base import Base
-from sqlalchemy import DateTime, Index, String, UniqueConstraint
+from sqlalchemy import JSON, DateTime, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -26,8 +26,10 @@ class Event(Base):
     source_ip: Mapped[str] = mapped_column(String(64), nullable=False)
 
     # Raw envelope and normalized ECS-like event
-    raw: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    normalized: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    raw: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), "postgresql"), nullable=False)
+    normalized: Mapped[dict | None] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"), nullable=True
+    )
 
     # Stable dedupe hash (unique)
     dedupe_hash: Mapped[str] = mapped_column(String(64), nullable=False)
