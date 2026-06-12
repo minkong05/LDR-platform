@@ -7,6 +7,7 @@ from app.db.models.event import Event
 from app.domain.rules.rule_schema import Rule
 from app.services.detection.engine import ThresholdEngine
 from app.services.detection.rule_loader import load_rules
+from app.services.notifications.email import EmailService
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -34,6 +35,7 @@ def run_detection_once(
     """
     rules: list[Rule] = load_rules(rules_dir)
     engine = ThresholdEngine(rules)
+    email_svc = EmailService()
 
     cutoff = datetime.now(timezone.utc) - timedelta(minutes=lookback_minutes)
 
@@ -88,5 +90,18 @@ def run_detection_once(
         db.add(row)
         db.commit()
         inserted += 1
+
+        email_svc.send_alert_notification(
+            {
+                "rule_id": row.rule_id,
+                "rule_name": row.rule_name,
+                "severity": row.severity,
+                "source_ip": row.source_ip,
+                "event_count": row.event_count,
+                "risk_score": row.risk_score,
+                "started_at": row.started_at,
+                "ended_at": row.ended_at,
+            }
+        )
 
     return inserted
