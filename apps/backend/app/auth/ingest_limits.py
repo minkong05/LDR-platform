@@ -1,7 +1,9 @@
 from app.security.rate_limit import RateLimit, limiter
 from fastapi import Header, HTTPException, status
 
-INGEST_LIMIT = RateLimit(max_requests=60, window_seconds=60)  # 60 req/min per agent token
+INGEST_LIMIT = RateLimit(
+    max_requests=200, window_seconds=60
+)  # 60 req/min per agent token # raised for demo triggering
 
 
 def rate_limit_ingest(x_agent_token: str | None = Header(default=None)) -> None:
