@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 📄 scripts/trigger_all_rules.sh
-# Triggers all LDR detection rules by sending matching events to the ingest API.
+# Triggers all LDR detection rules by sending batched events to the ingest API.
 # Usage: ./scripts/trigger_all_rules.sh
 
 set -euo pipefail
@@ -9,180 +9,125 @@ TOKEN="dev-agent-token-change-me"
 BASE_URL="http://localhost:8000"
 INGEST="${BASE_URL}/v1/ingest/events"
 
-# Each rule uses a different IP so alerts are isolated and don't interfere
-IP_001="203.0.113.10"   # LDR-WEB-001 brute force
-IP_002="203.0.113.20"   # LDR-WEB-002 credential stuffing
-IP_003="203.0.113.30"   # LDR-WEB-003 admin probing
-IP_004="203.0.113.40"   # LDR-WEB-004 404 scanning
-IP_005="203.0.113.50"   # LDR-WEB-005 login success after failures
-IP_006="203.0.113.60"   # LDR-WEB-006 account enumeration
+IP_001="203.0.113.10"
+IP_002="203.0.113.20"
+IP_003="203.0.113.30"
+IP_004="203.0.113.40"
+IP_005="203.0.113.50"
+IP_006="203.0.113.60"
 
 echo "========================================"
-echo " LDR — trigger all rules"
+echo " LDR — trigger all rules (batched)"
 echo "========================================"
 
-# ── LDR-WEB-001: Brute force login failures ───────────────────────────────────
-# match: event.action=login_failed, labels.route_group=auth, url.path=/login
-# condition: 10 events in 5m
-echo ""
-echo "→ LDR-WEB-001: sending 12 login_failed (flask) from ${IP_001}"
-for i in $(seq -w 1 12); do
-  curl -s -X POST "${INGEST}" \
-    -H "Content-Type: application/json" \
-    -H "X-Agent-Token: ${TOKEN}" \
-    -d "{
-      \"events\": [{
-        \"event_timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
-        \"log_source\": \"flask\",
-        \"service_name\": \"demo-web\",
-        \"source_ip\": \"${IP_001}\",
-        \"raw\": {
-          \"ip\": \"${IP_001}\",
-          \"method\": \"POST\",
-          \"path\": \"/login\",
-          \"status\": 401,
-          \"action\": \"login_failed\",
-          \"route_group\": \"auth\",
-          \"username\": \"user${i}\"
-        }
-      }]
-    }" > /dev/null
-  echo "   event ${i}"
-  sleep 0.1
-done
+# Helper: build a flask event JSON object with a unique timestamp offset
+flask_event() {
+  local ip=$1 path=$2 status=$3 action=$4 route=$5 user=$6 offset=$7
+  local ts
+  ts=$(date -u -v+"${offset}"S +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+    || date -u -d "+${offset} seconds" +%Y-%m-%dT%H:%M:%SZ)
+  printf '{
+    "event_timestamp": "%s",
+    "log_source": "flask",
+    "service_name": "demo-web",
+    "source_ip": "%s",
+    "raw": {"ip":"%s","method":"POST","path":"%s","status":%s,"action":"%s","route_group":"%s","username":"%s"}
+  }' "$ts" "$ip" "$ip" "$path" "$status" "$action" "$route" "$user"
+}
 
-# ── LDR-WEB-002: Credential stuffing — high 401 rate ─────────────────────────
-# match: http.response.status_code=401
-# condition: 20 events in 2m
-echo ""
-echo "→ LDR-WEB-002: sending 22 nginx 401s from ${IP_002}"
-for i in $(seq -w 1 22); do
-  curl -s -X POST "${INGEST}" \
-    -H "Content-Type: application/json" \
-    -H "X-Agent-Token: ${TOKEN}" \
-    -d "{
-      \"events\": [{
-        \"event_timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
-        \"log_source\": \"nginx\",
-        \"service_name\": \"demo-web\",
-        \"source_ip\": \"${IP_002}\",
-        \"raw\": {
-          \"nginx_line\": \"${IP_002} - - [$(date -u '+%Y-%m-%dT%H:%M:%S+00:00')] \\\"POST /login HTTP/1.1\\\" 401 120 \\\"-\\\" \\\"python-requests/2.31\\\"\"
-        }
-      }]
-    }" > /dev/null
-  echo "   event ${i}"
-  sleep 0.1
-done
+nginx_event() {
+  local ip=$1 path=$2 status=$3 ua=$4 offset=$5
+  local ts tslog
+  ts=$(date -u -v+"${offset}"S +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+    || date -u -d "+${offset} seconds" +%Y-%m-%dT%H:%M:%SZ)
+  tslog=$(date -u -v+"${offset}"S '+%Y-%m-%dT%H:%M:%S+00:00' 2>/dev/null \
+    || date -u -d "+${offset} seconds" '+%Y-%m-%dT%H:%M:%S+00:00')
+  printf '{
+    "event_timestamp": "%s",
+    "log_source": "nginx",
+    "service_name": "demo-web",
+    "source_ip": "%s",
+    "raw": {"nginx_line": "%s - - [%s] \\"GET %s HTTP/1.1\\" %s 0 \\"-\\" \\"%s\\""}
+  }' "$ts" "$ip" "$ip" "$tslog" "$path" "$status" "$ua"
+}
 
-# ── LDR-WEB-003: Admin panel probing ─────────────────────────────────────────
-# match: url.path=/admin, http.response.status_code=403
-# condition: 5 events in 10m
+# ── LDR-WEB-001: 12 flask login_failed ───────────────────────────────────────
 echo ""
-echo "→ LDR-WEB-003: sending 6 nginx 403s on /admin from ${IP_003}"
-for i in $(seq -w 1 6); do
-  curl -s -X POST "${INGEST}" \
-    -H "Content-Type: application/json" \
-    -H "X-Agent-Token: ${TOKEN}" \
-    -d "{
-      \"events\": [{
-        \"event_timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
-        \"log_source\": \"nginx\",
-        \"service_name\": \"demo-web\",
-        \"source_ip\": \"${IP_003}\",
-        \"raw\": {
-          \"nginx_line\": \"${IP_003} - - [$(date -u '+%Y-%m-%dT%H:%M:%S+00:00')] \\\"GET /admin HTTP/1.1\\\" 403 89 \\\"-\\\" \\\"curl/7.88\\\"\"
-        }
-      }]
-    }" > /dev/null
-  echo "   event ${i}"
-  sleep 0.1
+echo "→ LDR-WEB-001: 12 login_failed (flask) from ${IP_001}"
+events=""
+for i in $(seq 1 12); do
+  ev=$(flask_event "$IP_001" "/login" 401 "login_failed" "auth" "user${i}" "$i")
+  events="${events}${events:+,}${ev}"
 done
-
-# ── LDR-WEB-004: 404 path scanning ───────────────────────────────────────────
-# match: http.response.status_code=404
-# condition: 30 events in 3m
-echo ""
-echo "→ LDR-WEB-004: sending 32 nginx 404s from ${IP_004}"
-for i in $(seq -w 1 32); do
-  curl -s -X POST "${INGEST}" \
-    -H "Content-Type: application/json" \
-    -H "X-Agent-Token: ${TOKEN}" \
-    -d "{
-      \"events\": [{
-        \"event_timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
-        \"log_source\": \"nginx\",
-        \"service_name\": \"demo-web\",
-        \"source_ip\": \"${IP_004}\",
-        \"raw\": {
-          \"nginx_line\": \"${IP_004} - - [$(date -u '+%Y-%m-%dT%H:%M:%S+00:00')] \\\"GET /probe/path${i} HTTP/1.1\\\" 404 0 \\\"-\\\" \\\"gobuster/3.6\\\"\"
-        }
-      }]
-    }" > /dev/null
-  echo "   event ${i}"
-  sleep 0.05
-done
-
-# ── LDR-WEB-005: Login success after brute force ──────────────────────────────
-# match: event.action=login_success, labels.route_group=auth
-# condition: 1 event in 1m
-echo ""
-echo "→ LDR-WEB-005: sending 1 login_success (flask) from ${IP_005}"
-curl -s -X POST "${INGEST}" \
+curl -s -X POST "$INGEST" \
   -H "Content-Type: application/json" \
   -H "X-Agent-Token: ${TOKEN}" \
-  -d "{
-    \"events\": [{
-      \"event_timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
-      \"log_source\": \"flask\",
-      \"service_name\": \"demo-web\",
-      \"source_ip\": \"${IP_005}\",
-      \"raw\": {
-        \"ip\": \"${IP_005}\",
-        \"method\": \"POST\",
-        \"path\": \"/login\",
-        \"status\": 200,
-        \"action\": \"login_success\",
-        \"route_group\": \"auth\",
-        \"username\": \"victim_user\"
-      }
-    }]
-  }" > /dev/null
-echo "   event 1"
+  -d "{\"events\": [${events}]}" | jq '{inserted, deduped}'
 
-# ── LDR-WEB-006: Account enumeration ─────────────────────────────────────────
-# match: event.action=login_failed, event.outcome=failure
-# condition: 15 events in 5m
+# ── LDR-WEB-002: 22 nginx 401s ───────────────────────────────────────────────
 echo ""
-echo "→ LDR-WEB-006: sending 16 login_failed (flask) from ${IP_006}"
-for i in $(seq -w 1 16); do
-  curl -s -X POST "${INGEST}" \
-    -H "Content-Type: application/json" \
-    -H "X-Agent-Token: ${TOKEN}" \
-    -d "{
-      \"events\": [{
-        \"event_timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
-        \"log_source\": \"flask\",
-        \"service_name\": \"demo-web\",
-        \"source_ip\": \"${IP_006}\",
-        \"raw\": {
-          \"ip\": \"${IP_006}\",
-          \"method\": \"POST\",
-          \"path\": \"/login\",
-          \"status\": 401,
-          \"action\": \"login_failed\",
-          \"route_group\": \"auth\",
-          \"username\": \"enum_user${i}\"
-        }
-      }]
-    }" > /dev/null
-  echo "   event ${i}"
-  sleep 0.1
+echo "→ LDR-WEB-002: 22 nginx 401s from ${IP_002}"
+events=""
+for i in $(seq 1 22); do
+  ev=$(nginx_event "$IP_002" "/login" 401 "python-requests/2.31" "$i")
+  events="${events}${events:+,}${ev}"
 done
+curl -s -X POST "$INGEST" \
+  -H "Content-Type: application/json" \
+  -H "X-Agent-Token: ${TOKEN}" \
+  -d "{\"events\": [${events}]}" | jq '{inserted, deduped}'
+
+# ── LDR-WEB-003: 6 nginx 403s on /admin ─────────────────────────────────────
+echo ""
+echo "→ LDR-WEB-003: 6 nginx 403s on /admin from ${IP_003}"
+events=""
+for i in $(seq 1 6); do
+  ev=$(nginx_event "$IP_003" "/admin" 403 "curl/7.88" "$i")
+  events="${events}${events:+,}${ev}"
+done
+curl -s -X POST "$INGEST" \
+  -H "Content-Type: application/json" \
+  -H "X-Agent-Token: ${TOKEN}" \
+  -d "{\"events\": [${events}]}" | jq '{inserted, deduped}'
+
+# ── LDR-WEB-004: 32 nginx 404s ───────────────────────────────────────────────
+echo ""
+echo "→ LDR-WEB-004: 32 nginx 404s from ${IP_004}"
+events=""
+for i in $(seq 1 32); do
+  ev=$(nginx_event "$IP_004" "/probe/path${i}" 404 "gobuster/3.6" "$i")
+  events="${events}${events:+,}${ev}"
+done
+curl -s -X POST "$INGEST" \
+  -H "Content-Type: application/json" \
+  -H "X-Agent-Token: ${TOKEN}" \
+  -d "{\"events\": [${events}]}" | jq '{inserted, deduped}'
+
+# ── LDR-WEB-005: 1 flask login_success ───────────────────────────────────────
+echo ""
+echo "→ LDR-WEB-005: 1 login_success (flask) from ${IP_005}"
+ev=$(flask_event "$IP_005" "/login" 200 "login_success" "auth" "victim_user" "0")
+curl -s -X POST "$INGEST" \
+  -H "Content-Type: application/json" \
+  -H "X-Agent-Token: ${TOKEN}" \
+  -d "{\"events\": [${ev}]}" | jq '{inserted, deduped}'
+
+# ── LDR-WEB-006: 16 flask login_failed ───────────────────────────────────────
+echo ""
+echo "→ LDR-WEB-006: 16 login_failed (flask) from ${IP_006}"
+events=""
+for i in $(seq 1 16); do
+  ev=$(flask_event "$IP_006" "/login" 401 "login_failed" "auth" "enum_user${i}" "$i")
+  events="${events}${events:+,}${ev}"
+done
+curl -s -X POST "$INGEST" \
+  -H "Content-Type: application/json" \
+  -H "X-Agent-Token: ${TOKEN}" \
+  -d "{\"events\": [${events}]}" | jq '{inserted, deduped}'
 
 echo ""
 echo "========================================"
-echo " All events sent."
+echo " All events sent (6 requests total)."
 echo " Worker fires every 30s — wait up to 30s"
 echo " then check: http://localhost:5001/alerts"
 echo "========================================"
