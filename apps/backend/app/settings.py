@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     AGENT_TOKEN: str = "dev-token"
     INGEST_RATE_LIMIT: int = 1000
 
+    EVENT_RETENTION_DAYS: int = 14
+
     # ── Email notifications ────────────────────────────────────
     SMTP_ENABLED: bool = True
     SMTP_HOST: str = "localhost"
