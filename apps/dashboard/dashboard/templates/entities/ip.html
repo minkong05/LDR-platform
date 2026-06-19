@@ -1,4 +1,4 @@
-<!-- apps/dashboard/dashboard/templates/entities/ip.html -->
+<!-- 📄 apps/dashboard/dashboard/templates/entities/ip.html -->
 
 {% extends "base.html" %}
 {% block title %}IP {{ ip }} — LDR{% endblock %}
@@ -43,6 +43,13 @@
       </span>
     {% endif %}
 
+    {# NEW — Blocked badge #}
+    {% if block_status and block_status.is_blocked %}
+      <span class="badge bg-danger fs-6">
+        <i class="bi bi-slash-circle me-1"></i>BLOCKED
+      </span>
+    {% endif %}
+
     <span class="text-muted small">
       First seen {{ summary.first_seen[:19] | replace("T", " ") if summary.first_seen else "—" }}
       &nbsp;·&nbsp;
@@ -68,6 +75,30 @@
     >
       <i class="bi bi-download me-1"></i>Export Evidence
     </button>
+
+    {# NEW — Block / Unblock button #}
+    {% if block_status %}
+      {% if block_status.is_blocked %}
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-success"
+          data-bs-toggle="modal"
+          data-bs-target="#unblockModal"
+        >
+          <i class="bi bi-check-circle me-1"></i>Unblock IP
+        </button>
+      {% else %}
+        <button
+          type="button"
+          class="btn btn-sm btn-danger"
+          data-bs-toggle="modal"
+          data-bs-target="#blockModal"
+        >
+          <i class="bi bi-slash-circle me-1"></i>Block IP
+        </button>
+      {% endif %}
+    {% endif %}
+
   </div>
 </div>
 
@@ -82,165 +113,80 @@
         Downloads a ZIP containing <code>summary.md</code>, <code>alerts.json</code>,
         and <code>events.json</code> for this IP. Optionally scope to a time range.
       </p>
-
-      <form
-        method="get"
-        action="{{ url_for('entities.ip_evidence', ip=ip) }}"
-        class="row g-3 align-items-end"
-      >
-        <div class="col-12 col-md-4">
-          <label class="form-label small text-muted mb-1">
-            Start <span class="text-muted">(optional)</span>
-          </label>
-          <input
-            type="datetime-local"
-            name="start"
-            class="form-control form-control-sm"
-          />
+      <form action="{{ url_for('entities.ip_evidence', ip=ip) }}" method="get" class="row g-2">
+        <div class="col-auto">
+          <input type="datetime-local" name="start" class="form-control form-control-sm"
+                 placeholder="Start (UTC)" />
         </div>
-
-        <div class="col-12 col-md-4">
-          <label class="form-label small text-muted mb-1">
-            End <span class="text-muted">(optional)</span>
-          </label>
-          <input
-            type="datetime-local"
-            name="end"
-            class="form-control form-control-sm"
-          />
+        <div class="col-auto">
+          <input type="datetime-local" name="end" class="form-control form-control-sm"
+                 placeholder="End (UTC)" />
         </div>
-
-        <div class="col-12 col-md-4">
-          <button type="submit" class="btn btn-sm btn-info w-100">
-            <i class="bi bi-file-zip me-1"></i>Download ZIP
+        <div class="col-auto">
+          <button type="submit" class="btn btn-sm btn-info text-dark">
+            <i class="bi bi-download me-1"></i>Download ZIP
           </button>
         </div>
       </form>
-
-      <div class="text-muted mt-2" style="font-size:0.75rem;">
-        Leave both fields empty to export all data for this IP.
-      </div>
+      <p class="text-muted small mt-2 mb-0">
+        Leave blank to export all data.
+        Closed alerts excluded.
+      </p>
     </div>
   </div>
 </div>
 
-{# ── Summary stat cards ───────────────────────────────────── #}
-<div class="row g-3 mb-4">
-
+{# ── Alert summary cards ───────────────────────────────────── #}
+<div class="row g-4 mb-4">
   <div class="col-12 col-md-4">
-    <div class="card text-center">
-      <div class="card-body py-3">
+    <div class="card text-center h-100">
+      <div class="card-body">
         <div class="display-6 fw-bold text-info">{{ summary.total_events }}</div>
         <div class="text-muted small mt-1">Total Events</div>
       </div>
     </div>
   </div>
-
   <div class="col-12 col-md-4">
-    <div class="card text-center">
-      <div class="card-body py-3">
-        <div class="fw-bold text-light">
-          {{ summary.first_seen[:10] if summary.first_seen else "—" }}
-        </div>
-        <div class="text-muted small mt-1">First Seen</div>
-        {% if summary.first_seen %}
-          <div class="text-muted" style="font-size:0.75rem;">
-            {{ summary.first_seen[11:19] }} UTC
-          </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  <div class="col-12 col-md-4">
-    <div class="card text-center">
-      <div class="card-body py-3">
-        <div class="fw-bold text-light">
-          {{ summary.last_seen[:10] if summary.last_seen else "—" }}
-        </div>
-        <div class="text-muted small mt-1">Last Seen</div>
-        {% if summary.last_seen %}
-          <div class="text-muted" style="font-size:0.75rem;">
-            {{ summary.last_seen[11:19] }} UTC
-          </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-</div>
-
-{# ── Risk score card ──────────────────────────────────────── #}
-{% if risk and risk.label != 'none' %}
-<div class="card mb-4">
-  <div class="card-header text-muted small">
-    <i class="bi bi-graph-up-arrow me-1"></i>Risk Score
-  </div>
-  <div class="card-body">
-    <div class="row align-items-center g-3">
-
-      <div class="col-12 col-md-5">
-        <div class="d-flex align-items-center gap-3">
-          <div class="display-5 fw-bold
+    <div class="card text-center h-100">
+      <div class="card-body">
+        {% if risk %}
+          <div class="display-6 fw-bold
             {% if risk.label == 'critical' %}text-danger
             {% elif risk.label == 'high' %}text-warning
             {% elif risk.label == 'medium' %}text-primary
             {% else %}text-secondary{% endif %}
           ">{{ risk.score }}</div>
-          <div class="flex-grow-1">
-            <div class="progress" style="height:10px;">
-              <div class="progress-bar
-                {% if risk.label == 'critical' %}bg-danger
-                {% elif risk.label == 'high' %}bg-warning
-                {% elif risk.label == 'medium' %}bg-primary
-                {% else %}bg-secondary{% endif %}"
-                style="width:{{ risk.score }}%"
-              ></div>
-            </div>
-            <div class="text-muted small mt-1">
-              {{ risk.contributing_alerts }} active alert{{ 's' if risk.contributing_alerts != 1 else '' }}
-              contributing
-            </div>
-          </div>
-        </div>
+          <div class="text-muted small mt-1">Risk Score</div>
+        {% else %}
+          <div class="display-6 fw-bold text-secondary">—</div>
+          <div class="text-muted small mt-1">Risk Score</div>
+        {% endif %}
       </div>
-
-      <div class="col-12 col-md-7">
-        <div class="d-flex flex-wrap gap-2">
-          {% if risk.breakdown.critical > 0 %}
-            <span class="badge bg-danger px-3 py-2">
-              <i class="bi bi-exclamation-octagon me-1"></i>
-              {{ risk.breakdown.critical }} critical
-            </span>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="card text-center h-100">
+      <div class="card-body">
+        {% if block_status %}
+          {% if block_status.is_blocked %}
+            <div class="display-6 fw-bold text-danger">
+              <i class="bi bi-slash-circle"></i>
+            </div>
+            <div class="text-muted small mt-1">Currently Blocked</div>
+          {% else %}
+            <div class="display-6 fw-bold text-success">
+              <i class="bi bi-shield-check"></i>
+            </div>
+            <div class="text-muted small mt-1">Not Blocked</div>
           {% endif %}
-          {% if risk.breakdown.high > 0 %}
-            <span class="badge bg-warning text-dark px-3 py-2">
-              <i class="bi bi-exclamation-triangle me-1"></i>
-              {{ risk.breakdown.high }} high
-            </span>
-          {% endif %}
-          {% if risk.breakdown.medium > 0 %}
-            <span class="badge bg-primary px-3 py-2">
-              <i class="bi bi-exclamation-circle me-1"></i>
-              {{ risk.breakdown.medium }} medium
-            </span>
-          {% endif %}
-          {% if risk.breakdown.low > 0 %}
-            <span class="badge bg-secondary px-3 py-2">
-              <i class="bi bi-info-circle me-1"></i>
-              {{ risk.breakdown.low }} low
-            </span>
-          {% endif %}
-        </div>
-        <div class="text-muted mt-2" style="font-size:0.75rem;">
-          Score = Σ(severity weight × time decay). Closed alerts excluded.
-        </div>
+        {% else %}
+          <div class="display-6 fw-bold text-secondary">—</div>
+          <div class="text-muted small mt-1">Block Status</div>
+        {% endif %}
       </div>
-
     </div>
   </div>
 </div>
-{% endif %}
 
 {# ── Data row: top paths + status codes ───────────────────── #}
 <div class="row g-4">
@@ -338,6 +284,58 @@
     </div>
   </div>
 
+</div>
+
+{# ── NEW: Block confirm modal ──────────────────────────────── #}
+<div class="modal fade" id="blockModal" tabindex="-1" aria-labelledby="blockModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark border border-danger">
+      <div class="modal-header border-danger">
+        <h5 class="modal-title text-danger" id="blockModalLabel">
+          <i class="bi bi-slash-circle me-2"></i>Block IP {{ ip }}?
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-muted small">
+        <p>This will create a block record for <span class="font-monospace text-light">{{ ip }}</span> and write an entry to the audit log.</p>
+        <p class="mb-0">The block is indefinite unless a TTL is set. You can unblock at any time from this page.</p>
+      </div>
+      <div class="modal-footer border-secondary">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form method="post" action="{{ url_for('entities.block_ip', ip=ip) }}" class="d-inline">
+          <input type="hidden" name="reason" value="Blocked via dashboard" />
+          <button type="submit" class="btn btn-sm btn-danger">
+            <i class="bi bi-slash-circle me-1"></i>Confirm Block
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── NEW: Unblock confirm modal ────────────────────────────── #}
+<div class="modal fade" id="unblockModal" tabindex="-1" aria-labelledby="unblockModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark border border-success">
+      <div class="modal-header border-success">
+        <h5 class="modal-title text-success" id="unblockModalLabel">
+          <i class="bi bi-check-circle me-2"></i>Unblock IP {{ ip }}?
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-muted small">
+        <p>This will deactivate all active blocks for <span class="font-monospace text-light">{{ ip }}</span> and write an entry to the audit log.</p>
+      </div>
+      <div class="modal-footer border-secondary">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form method="post" action="{{ url_for('entities.unblock_ip', ip=ip) }}" class="d-inline">
+          <button type="submit" class="btn btn-sm btn-success">
+            <i class="bi bi-check-circle me-1"></i>Confirm Unblock
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
 
 {% else %}
