@@ -1,0 +1,174 @@
+<!-- 📄 apps/dashboard/dashboard/templates/response/audit.html -->
+
+{% extends "base.html" %}
+{% block title %}Audit Log — LDR{% endblock %}
+
+{% block content %}
+
+{# ── Page header ──────────────────────────────────────────── #}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+  <h4 class="mb-0">
+    <i class="bi bi-journal-text text-warning me-2"></i>Audit Log
+  </h4>
+  <span class="text-muted small">
+    Response actions taken by analysts — block, unblock, and no-ops.
+  </span>
+</div>
+
+{# ── Filter bar ───────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-end">
+
+      <div class="col-12 col-md-3">
+        <label class="form-label small text-muted mb-1">Target IP</label>
+        <input
+          type="text"
+          name="target_ip"
+          class="form-control form-control-sm font-monospace"
+          placeholder="e.g. 203.0.113.10"
+          value="{{ filters.get('target_ip', '') }}"
+        />
+      </div>
+
+      <div class="col-12 col-md-3">
+        <label class="form-label small text-muted mb-1">Action</label>
+        <select name="action" class="form-select form-select-sm">
+          <option value="">All actions</option>
+          {% for opt in ["block_ip", "unblock_ip", "block_ip_noop", "unblock_ip_noop"] %}
+            <option value="{{ opt }}"
+              {% if filters.get('action') == opt %}selected{% endif %}>
+              {{ opt }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-12 col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-warning w-100">
+          <i class="bi bi-funnel me-1"></i>Filter
+        </button>
+        <a href="{{ url_for('response.audit_log') }}" class="btn btn-sm btn-outline-secondary w-100">
+          Clear
+        </a>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{# ── Audit entries table ──────────────────────────────────── #}
+{% if entries %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover table-sm mb-0 align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>Time</th>
+          <th>Action</th>
+          <th>Actor</th>
+          <th>Target IP</th>
+          <th>Detail</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in entries %}
+        <tr>
+
+          {# Timestamp #}
+          <td class="text-muted small text-nowrap">
+            {{ entry.created_at[:19] | replace("T", " ") }}
+          </td>
+
+          {# Action badge #}
+          <td>
+            <span class="badge font-monospace
+              {% if entry.action == 'block_ip' %}bg-danger
+              {% elif entry.action == 'unblock_ip' %}bg-success
+              {% elif 'noop' in entry.action %}bg-secondary
+              {% else %}bg-dark border border-secondary{% endif %}
+            ">
+              {{ entry.action }}
+            </span>
+          </td>
+
+          {# Actor #}
+          <td class="small text-muted">{{ entry.actor }}</td>
+
+          {# Target IP — link to investigation page if present #}
+          <td>
+            {% if entry.target_ip %}
+              <a
+                href="{{ url_for('entities.ip_summary', ip=entry.target_ip) }}"
+                class="text-info font-monospace small"
+              >
+                {{ entry.target_ip }}
+              </a>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+
+          {# Detail JSON — collapsed by default #}
+          <td style="max-width: 340px;">
+            <button
+              class="btn btn-sm btn-link text-muted p-0"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#detail-{{ loop.index }}"
+              aria-expanded="false"
+            >
+              <i class="bi bi-braces me-1"></i>
+              <span class="small">show detail</span>
+            </button>
+            <div class="collapse mt-1" id="detail-{{ loop.index }}">
+              <pre class="p-2 mb-0 small text-success"
+                   style="background:#0d1117; border-radius:.375rem; white-space:pre-wrap; word-break:break-all;">{{ entry.detail | tojson(indent=2) }}</pre>
+            </div>
+          </td>
+
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# ── Pagination ───────────────────────────────────────────── #}
+<div class="d-flex justify-content-between align-items-center mt-3 text-muted small">
+  <span>Showing {{ entries | length }} entries (offset {{ offset }})</span>
+  <div class="d-flex gap-2">
+    {% if offset > 0 %}
+      <a
+        href="{{ url_for('response.audit_log', offset=[offset - limit, 0] | max, limit=limit, **filters) }}"
+        class="btn btn-sm btn-outline-secondary"
+      >
+        <i class="bi bi-chevron-left me-1"></i>Prev
+      </a>
+    {% endif %}
+    {% if entries | length == limit %}
+     <a
+        href="{{ url_for('response.audit_log', offset=offset + limit, limit=limit, **filters) }}"
+        class="btn btn-sm btn-outline-secondary"
+      >
+        Next<i class="bi bi-chevron-right ms-1"></i>
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+{% else %}
+<div class="card">
+  <div class="card-body text-center py-5">
+    <i class="bi bi-journal-text display-4 text-secondary mb-3 d-block"></i>
+    <h5 class="text-muted">No audit entries found</h5>
+    <p class="text-muted small mb-0">
+      Block or unblock an IP from the
+      <a href="{{ url_for('alerts.list_alerts') }}" class="text-warning">investigation page</a>
+      to see entries here.
+    </p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
