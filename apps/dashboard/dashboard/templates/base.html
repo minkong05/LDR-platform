@@ -1,4 +1,4 @@
-<!-- apps/dashboard/dashboard/templates/base.html -->
+<!-- 📄 apps/dashboard/dashboard/templates/base.html -->
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
 
@@ -17,7 +17,6 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='custom.css') }}" />
 </head>
 
-
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary">
     <div class="container-fluid">
@@ -28,6 +27,10 @@
         <a class="nav-link {% if request.path.startswith('/alerts') %}active{% endif %}"
           href="{{ url_for('alerts.list_alerts') }}">
           <i class="bi bi-bell me-1"></i>Alerts
+        </a>
+        <a class="nav-link {% if request.path.startswith('/response') %}active{% endif %}"
+          href="{{ url_for('response.audit_log') }}">
+          <i class="bi bi-journal-text me-1"></i>Audit Log
         </a>
       </div>
     </div>
@@ -52,6 +55,5 @@
   </script>
   {% block scripts %}{% endblock %}
 </body>
-
 
 </html>

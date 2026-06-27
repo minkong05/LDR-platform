@@ -1,4 +1,5 @@
-# apps/dashboard/dashboard/api_client.py
+# 📄 apps/dashboard/dashboard/api_client.py
+
 from __future__ import annotations
 
 import requests
@@ -17,6 +18,14 @@ def get(path: str, params: dict | None = None) -> dict:
     """GET /v1/... and return parsed JSON. Raises on HTTP errors."""
     url = f"{_base()}{path}"
     resp = requests.get(url, params=params, timeout=_timeout())
+    resp.raise_for_status()
+    return resp.json()
+
+
+def post(path: str, payload: dict | None = None) -> dict:
+    """POST /v1/... with JSON body and return parsed JSON. Raises on HTTP errors."""
+    url = f"{_base()}{path}"
+    resp = requests.post(url, json=payload or {}, timeout=_timeout())
     resp.raise_for_status()
     return resp.json()
 
