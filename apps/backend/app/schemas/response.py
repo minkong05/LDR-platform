@@ -60,3 +60,22 @@ class BlockStatusOut(BaseModel):
     ip: str
     is_blocked: bool
     block: BlockDetail | None = None
+
+
+class AuditLogOut(BaseModel):
+    """Serialized view of a single audit_log row."""
+
+    id: str
+    action: str
+    actor: str
+    target_ip: str | None
+    detail: dict
+    created_at: str
+
+
+class AuditLogListOut(BaseModel):
+    """Paginated audit log response."""
+
+    items: list[AuditLogOut]
+    limit: int
+    offset: int
