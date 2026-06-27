@@ -187,5 +187,5 @@ Built by **Kong Yu Min**
 University of Glasgow  
 Python | Backend | Security
 
-[GitHub](https://github.com/minkong05) · [LinkedIn](www.linkedin.com/in/kong-yu-min)
+[GitHub](https://github.com/minkong05) · [LinkedIn](https://linkedin.com/in/kong-yu-min)
 
