@@ -227,3 +227,6 @@ __marimo__/
 
 # evidence_
 echo "evidence_*.zip" >> .gitignore
+
+# personal claude
+FEATURE_PLAN.md
