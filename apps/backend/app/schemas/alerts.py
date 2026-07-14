@@ -1,7 +1,8 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from app.domain.rules.rule_schema import MitreMapping
+from pydantic import BaseModel, Field, field_validator
 
 
 class AlertOut(BaseModel):
@@ -20,6 +21,13 @@ class AlertOut(BaseModel):
     closure_reason: str | None
     notes: str | None
     context: dict
+    mitre: MitreMapping | None = None
+
+    @field_validator("mitre", mode="before")
+    @classmethod
+    def _empty_mitre_to_none(cls, v: dict | None) -> dict | None:
+        # older/ruleless alerts store `{}` in the JSONB column, not null
+        return v or None
 
 
 class AlertsListOut(BaseModel):

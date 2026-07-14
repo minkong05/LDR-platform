@@ -76,6 +76,7 @@
           <th>Severity</th>
           <th>Status</th>
           <th>Rule</th>
+          <th>Mitre</th>
           <th>Source IP</th>
           <th class="text-center">IP Risk</th>
           <th class="text-center">Alert Score</th>
@@ -113,6 +114,13 @@
               {{ alert.rule_name | truncate(40) }}
             </span>
             <div class="text-muted" style="font-size:0.75rem;">{{ alert.rule_id }}</div>
+          </td>
+
+          {# Mitre #}
+          <td>
+            <span class="text-light" title="{{ alert.mitre.technique_id }}">
+              {{ alert.mitre.technique_id | truncate(40) }}
+            </span>
           </td>
 
           {# Source IP #}

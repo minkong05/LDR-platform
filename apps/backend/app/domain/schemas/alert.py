@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from app.domain.rules.rule_schema import MitreMapping
 from pydantic import BaseModel
 
 
@@ -16,3 +17,5 @@ class Alert(BaseModel):
 
     event_count: int
     sample_event_ids: list[str] = []
+
+    mitre: MitreMapping | None = None
