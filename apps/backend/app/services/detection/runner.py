@@ -86,6 +86,7 @@ def run_detection_once(
             event_count=a.event_count,
             status="open",
             context={},
+            mitre=a.mitre.model_dump() if a.mitre else {},
         )
         db.add(row)
         db.commit()

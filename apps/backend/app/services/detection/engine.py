@@ -78,6 +78,7 @@ class ThresholdEngine:
                         ended_at=max(st.timestamps),
                         event_count=len(st.timestamps),
                         sample_event_ids=[],
+                        mitre=rule.output.mitre,
                     )
                     alerts.append(alert)
                     st.last_alert_at = ts
