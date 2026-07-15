@@ -61,6 +61,9 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
+# local sqlite fallback (app/settings.py DATABASE_URL default)
+*.db
+
 # Flask stuff:
 instance/
 .webassets-cache

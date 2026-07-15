@@ -40,7 +40,13 @@ def test_alerts_list_and_patch():
 
     r = client.get("/v1/alerts?limit=10")
     assert r.status_code == 200
-    assert any(x["id"] == alert_id for x in r.json()["items"])
+    items = r.json()["items"]
+    assert any(x["id"] == alert_id for x in items)
+
+    # Row was created without `mitre`, so the ORM default (`{}`) is stored.
+    # AlertOut must serialize that as null, not raise a validation error.
+    seeded = next(x for x in items if x["id"] == alert_id)
+    assert seeded["mitre"] is None
 
     r2 = client.patch(
         f"/v1/alerts/{alert_id}", json={"status": "closed", "closure_reason": "confirmed"}
