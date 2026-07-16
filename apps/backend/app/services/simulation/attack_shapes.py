@@ -21,7 +21,7 @@ def synthetic_ip_for_rule(rule_id: str) -> str:
         n = int(suffix)
     except ValueError as e:
         raise ValueError(f"cannot derive synthetic IP from rule id {rule_id!r}") from e
-    return f"203.0.113.{n * 10}"
+    return f"203.0.121.{n * 10}"
 
 
 def get_rule_by_id(rules_dir: Path, rule_id: str) -> Rule:
