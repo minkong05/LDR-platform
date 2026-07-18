@@ -97,6 +97,16 @@ open http://localhost:5001             # dashboard
 open http://localhost:5001
 ```
 
+### Attack simulation & detection-coverage report
+
+`python -m app.cli simulate` (run from `apps/backend`) fabricates a batch of
+synthetic attacks per detection rule, waits for the worker to evaluate them,
+and checks which rules actually fired — the same idea as
+`trigger_all_rules.sh`, but a testable Python tool that also reports what
+this detection suite does *not* cover (see `mitre_reference.py`). Writes a
+regenerable report to `docs/detection-coverage.md`. Local/demo use only —
+refuses to run when `ENV=production`.
+
 
 ## Project structure
 
