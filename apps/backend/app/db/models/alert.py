@@ -44,6 +44,10 @@ class Alert(Base):
         JSON().with_variant(JSONB(), "postgresql"), nullable=False, default=dict
     )
 
+    mitre: Mapped[dict] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"), nullable=False, default=dict
+    )
+
     __table_args__ = (
         Index("ix_alerts_created_at", "created_at"),
         Index("ix_alerts_source_ip", "source_ip"),

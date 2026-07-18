@@ -38,6 +38,10 @@ output:
   confidence: medium
   risk_score: 70
   tags: ["test"]
+  mitre:
+    tactic: "Credential Access"
+    technique_id: "T1110.004"
+    technique: "Credential Stuffing"
 """
     (tmp_path / "TEST-001.yml").write_text(rule_text.strip(), encoding="utf-8")
 
@@ -111,7 +115,13 @@ output:
     finally:
         db.close()
 
-    # Confirm alert exists via API
+    # Confirm alert exists via API, with the rule's mitre mapping persisted
     r2 = client.get("/v1/alerts?source_ip=203.0.113.99")
     assert r2.status_code == 200
-    assert len(r2.json()["items"]) >= 1
+    items = r2.json()["items"]
+    assert len(items) >= 1
+    assert items[0]["mitre"] == {
+        "tactic": "Credential Access",
+        "technique_id": "T1110.004",
+        "technique": "Credential Stuffing",
+    }

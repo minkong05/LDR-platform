@@ -120,6 +120,38 @@
       </div>
     </div>
 
+    {# MITRE ATT&CK card #}
+    {% if alert.mitre %}
+    <div class="card mb-4">
+      <div class="card-header text-muted small">
+        <i class="bi bi-diagram-3 me-1"></i>MITRE ATT&amp;CK
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+
+          <dt class="col-5 text-muted">Tactic</dt>
+          <dd class="col-7">{{ alert.mitre.tactic }}</dd>
+
+          {% if alert.mitre.technique_id %}
+          <dt class="col-5 text-muted">Technique</dt>
+          <dd class="col-7">
+            <a
+              href="https://attack.mitre.org/techniques/{{ alert.mitre.technique_id | replace('.', '/') }}/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-info font-monospace"
+            >
+              {{ alert.mitre.technique_id }}{% if alert.mitre.technique %} — {{ alert.mitre.technique }}{% endif %}
+              <i class="bi bi-box-arrow-up-right ms-1 small"></i>
+            </a>
+          </dd>
+          {% endif %}
+
+        </dl>
+      </div>
+    </div>
+    {% endif %}
+
     {# Detection context card — the JSON evidence blob #}
     <div class="card">
       <div class="card-header text-muted small">
