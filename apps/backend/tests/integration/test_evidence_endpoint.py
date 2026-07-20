@@ -17,7 +17,7 @@ from fastapi.testclient import TestClient
 pytestmark = pytest.mark.integration
 
 CLIENT = TestClient(app)
-HEADERS = {"X-Agent-Token": settings.AGENT_TOKEN}
+HEADERS = {"X-Dashboard-Token": settings.DASHBOARD_API_TOKEN}
 
 
 # ── Seed helpers ───────────────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ def test_evidence_endpoint_returns_zip():
     ip = "192.0.2.50"
     _seed_event(ip, datetime.now(timezone.utc))
 
-    r = CLIENT.get(f"/v1/entities/ip/{ip}/evidence")
+    r = CLIENT.get(f"/v1/entities/ip/{ip}/evidence", headers=HEADERS)
 
     assert r.status_code == 200
     assert r.headers["content-type"] == "application/zip"
@@ -119,7 +119,7 @@ def test_evidence_zip_contains_three_files():
     _seed_event(ip, datetime.now(timezone.utc))
     _seed_alert(ip)
 
-    r = CLIENT.get(f"/v1/entities/ip/{ip}/evidence")
+    r = CLIENT.get(f"/v1/entities/ip/{ip}/evidence", headers=HEADERS)
     assert r.status_code == 200
 
     files = _unzip_response(r.content)
@@ -135,7 +135,7 @@ def test_evidence_alerts_json_matches_seeded_alert():
     ip = "192.0.2.52"
     alert_id = _seed_alert(ip, severity="critical", status="open")
 
-    r = CLIENT.get(f"/v1/entities/ip/{ip}/evidence")
+    r = CLIENT.get(f"/v1/entities/ip/{ip}/evidence", headers=HEADERS)
     assert r.status_code == 200
 
     files = _unzip_response(r.content)
@@ -156,7 +156,7 @@ def test_evidence_events_json_matches_seeded_event():
     ts = datetime.now(timezone.utc)
     _seed_event(ip, ts, path="/admin")
 
-    r = CLIENT.get(f"/v1/entities/ip/{ip}/evidence")
+    r = CLIENT.get(f"/v1/entities/ip/{ip}/evidence", headers=HEADERS)
     assert r.status_code == 200
 
     files = _unzip_response(r.content)
@@ -173,7 +173,7 @@ def test_evidence_summary_md_contains_ip():
     ip = "192.0.2.54"
     _seed_event(ip, datetime.now(timezone.utc))
 
-    r = CLIENT.get(f"/v1/entities/ip/{ip}/evidence")
+    r = CLIENT.get(f"/v1/entities/ip/{ip}/evidence", headers=HEADERS)
     assert r.status_code == 200
 
     files = _unzip_response(r.content)
@@ -198,7 +198,7 @@ def test_evidence_time_range_filters_events():
 
     # Request only the last 24 hours
     start = (now - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    r = CLIENT.get(f"/v1/entities/ip/{ip}/evidence?start={start}")
+    r = CLIENT.get(f"/v1/entities/ip/{ip}/evidence?start={start}", headers=HEADERS)
     assert r.status_code == 200
 
     files = _unzip_response(r.content)
@@ -220,7 +220,7 @@ def test_evidence_time_range_filters_alerts():
     # Request a window in the distant past — alert should not appear
     start = "2020-01-01T00:00:00Z"
     end = "2020-12-31T23:59:59Z"
-    r = CLIENT.get(f"/v1/entities/ip/{ip}/evidence?start={start}&end={end}")
+    r = CLIENT.get(f"/v1/entities/ip/{ip}/evidence?start={start}&end={end}", headers=HEADERS)
     assert r.status_code == 200
 
     files = _unzip_response(r.content)
@@ -233,7 +233,7 @@ def test_evidence_empty_ip_returns_valid_empty_zip():
         pytest.skip("Set RUN_INTEGRATION_TESTS=1 to run integration tests")
 
     # IP that has never been seen — should still return a valid ZIP
-    r = CLIENT.get("/v1/entities/ip/198.51.100.99/evidence")
+    r = CLIENT.get("/v1/entities/ip/198.51.100.99/evidence", headers=HEADERS)
     assert r.status_code == 200
 
     files = _unzip_response(r.content)

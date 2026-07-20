@@ -7,11 +7,13 @@ import pytest
 from app.db.models.alert import Alert as AlertRow
 from app.db.session import SessionLocal
 from app.main import app
+from app.settings import settings
 from fastapi.testclient import TestClient
 
 pytestmark = pytest.mark.integration
 
 CLIENT = TestClient(app)
+HEADERS = {"X-Dashboard-Token": settings.DASHBOARD_API_TOKEN}
 
 
 def _seed_alert(ip: str, severity: str, status: str = "open") -> None:
@@ -40,7 +42,7 @@ def test_risk_endpoint_returns_zero_for_unknown_ip():
     if os.getenv("RUN_INTEGRATION_TESTS") != "1":
         pytest.skip("Set RUN_INTEGRATION_TESTS=1 to run integration tests")
 
-    r = CLIENT.get("/v1/entities/ip/9.9.9.9/risk")
+    r = CLIENT.get("/v1/entities/ip/9.9.9.9/risk", headers=HEADERS)
     assert r.status_code == 200
     data = r.json()
     assert data["score"] == 0
@@ -56,7 +58,7 @@ def test_risk_endpoint_scores_open_alerts():
     _seed_alert(ip, severity="high", status="open")
     _seed_alert(ip, severity="medium", status="open")
 
-    r = CLIENT.get(f"/v1/entities/ip/{ip}/risk")
+    r = CLIENT.get(f"/v1/entities/ip/{ip}/risk", headers=HEADERS)
     assert r.status_code == 200
     data = r.json()
 
@@ -76,7 +78,7 @@ def test_risk_endpoint_excludes_closed_alerts():
     _seed_alert(ip, severity="critical", status="closed")
     _seed_alert(ip, severity="low", status="open")
 
-    r = CLIENT.get(f"/v1/entities/ip/{ip}/risk")
+    r = CLIENT.get(f"/v1/entities/ip/{ip}/risk", headers=HEADERS)
     assert r.status_code == 200
     data = r.json()
 

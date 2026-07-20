@@ -41,7 +41,10 @@ def test_ip_summary_returns_stats():
     r = client.post("/v1/ingest/events", json=payload, headers=headers)
     assert r.status_code == 200
 
-    r2 = client.get("/v1/entities/ip/203.0.113.55")
+    r2 = client.get(
+        "/v1/entities/ip/203.0.113.55",
+        headers={"X-Dashboard-Token": settings.DASHBOARD_API_TOKEN},
+    )
     assert r2.status_code == 200
     data = r2.json()
     assert data["total_events"] == 2

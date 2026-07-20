@@ -14,6 +14,7 @@ pytestmark = pytest.mark.integration
 
 CLIENT = TestClient(app)
 HEADERS = {"X-Agent-Token": settings.AGENT_TOKEN}
+DASHBOARD_HEADERS = {"X-Dashboard-Token": settings.DASHBOARD_API_TOKEN}
 
 # ── Shared helpers ─────────────────────────────────────────────────────────────
 
@@ -36,7 +37,7 @@ def _run(rules_dir: Path, lookback: int = 999_999) -> int:
 
 
 def _assert_alert_exists(rule_id: str, source_ip: str) -> None:
-    r = CLIENT.get(f"/v1/alerts?source_ip={source_ip}")
+    r = CLIENT.get(f"/v1/alerts?source_ip={source_ip}", headers=DASHBOARD_HEADERS)
     assert r.status_code == 200
     items = r.json()["items"]
     matching = [a for a in items if a["rule_id"] == rule_id]
