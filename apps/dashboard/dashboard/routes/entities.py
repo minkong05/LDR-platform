@@ -53,7 +53,9 @@ def ip_evidence(ip: str):
 
     try:
         url = f"{api_client._base()}/v1/entities/ip/{ip}/evidence"
-        resp = requests.get(url, params=params, timeout=api_client._timeout())
+        resp = requests.get(
+            url, params=params, headers=api_client._headers(), timeout=api_client._timeout()
+        )
         resp.raise_for_status()
     except Exception as exc:
         flash(f"Evidence export failed: {exc}", "danger")
