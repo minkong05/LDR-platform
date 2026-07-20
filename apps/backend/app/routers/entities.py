@@ -4,6 +4,7 @@ import io
 from datetime import datetime, timezone
 from typing import Annotated
 
+from app.auth.dashboard import require_dashboard_token
 from app.db.models.alert import Alert
 from app.db.models.event import Event
 from app.deps import get_db
@@ -24,6 +25,7 @@ router = APIRouter(tags=["entities"])
 def ip_summary(
     ip: str,
     db: Session = Depends(get_db),  # noqa: B008
+    _auth: None = Depends(require_dashboard_token),
 ):
     base = select(Event).where(Event.source_ip == ip)
 
@@ -76,6 +78,7 @@ def ip_summary(
 def ip_risk(
     ip: str,
     db: Session = Depends(get_db),  # noqa: B008
+    _auth: None = Depends(require_dashboard_token),
 ):
     rows = db.execute(
         select(Alert.severity, Alert.status, Alert.created_at).where(Alert.source_ip == ip)
@@ -105,6 +108,7 @@ def ip_risk(
 def ip_evidence(
     ip: str,
     db: Session = Depends(get_db),  # noqa: B008
+    _auth: None = Depends(require_dashboard_token),
     start: Annotated[
         datetime | None,
         Query(description="Start of time range (ISO8601 UTC)"),

@@ -1,6 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
+from app.auth.dashboard import require_dashboard_token
 from app.db.models.alert import Alert
 from app.deps import get_db
 from app.schemas.alerts import AlertOut, AlertsListOut, AlertUpdateIn
@@ -14,6 +15,7 @@ router = APIRouter(tags=["alerts"])
 @router.get("/alerts", response_model=AlertsListOut)
 def list_alerts(
     db: Session = Depends(get_db),  # noqa: B008
+    _auth: None = Depends(require_dashboard_token),
     status: Annotated[str | None, Query(description="open|triaged|closed")] = None,
     severity: Annotated[str | None, Query(description="low|medium|high|critical")] = None,
     source_ip: Annotated[str | None, Query(description="Filter by source IP")] = None,
@@ -39,6 +41,7 @@ def list_alerts(
 def get_alert(
     alert_id: UUID,
     db: Session = Depends(get_db),  # noqa: B008
+    _auth: None = Depends(require_dashboard_token),
 ):
     row = db.get(Alert, alert_id)
     if not row:
@@ -51,6 +54,7 @@ def update_alert(
     alert_id: UUID,
     patch: AlertUpdateIn,
     db: Session = Depends(get_db),  # noqa: B008
+    _auth: None = Depends(require_dashboard_token),
 ):
     row = db.get(Alert, alert_id)
     if not row:
