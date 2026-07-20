@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     ENV: str = "development"
     DATABASE_URL: str = "sqlite:///./ldr.db"
     AGENT_TOKEN: str = "dev-token"
+    DASHBOARD_API_TOKEN: str = "dev-dashboard-token"
     INGEST_RATE_LIMIT: int = 1000
 
     EVENT_RETENTION_DAYS: int = 14
