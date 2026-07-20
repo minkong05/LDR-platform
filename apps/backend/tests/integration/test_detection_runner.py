@@ -116,7 +116,10 @@ output:
         db.close()
 
     # Confirm alert exists via API, with the rule's mitre mapping persisted
-    r2 = client.get("/v1/alerts?source_ip=203.0.113.99")
+    r2 = client.get(
+        "/v1/alerts?source_ip=203.0.113.99",
+        headers={"X-Dashboard-Token": settings.DASHBOARD_API_TOKEN},
+    )
     assert r2.status_code == 200
     items = r2.json()["items"]
     assert len(items) >= 1

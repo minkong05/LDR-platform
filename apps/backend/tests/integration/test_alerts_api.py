@@ -5,6 +5,7 @@ import pytest
 from app.db.models.alert import Alert as AlertRow
 from app.db.session import SessionLocal
 from app.main import app
+from app.settings import settings
 from fastapi.testclient import TestClient
 
 pytestmark = pytest.mark.integration
@@ -37,8 +38,9 @@ def test_alerts_list_and_patch():
         db.close()
 
     client = TestClient(app)
+    headers = {"X-Dashboard-Token": settings.DASHBOARD_API_TOKEN}
 
-    r = client.get("/v1/alerts?limit=10")
+    r = client.get("/v1/alerts?limit=10", headers=headers)
     assert r.status_code == 200
     items = r.json()["items"]
     assert any(x["id"] == alert_id for x in items)
@@ -49,7 +51,9 @@ def test_alerts_list_and_patch():
     assert seeded["mitre"] is None
 
     r2 = client.patch(
-        f"/v1/alerts/{alert_id}", json={"status": "closed", "closure_reason": "confirmed"}
+        f"/v1/alerts/{alert_id}",
+        json={"status": "closed", "closure_reason": "confirmed"},
+        headers=headers,
     )
     assert r2.status_code == 200
     assert r2.json()["status"] == "closed"
