@@ -2,6 +2,7 @@
 
 from typing import Annotated
 
+from app.auth.dashboard import require_dashboard_token
 from app.db.models.audit_log import AuditLog
 from app.deps import get_db
 from app.schemas.response import (
@@ -24,6 +25,7 @@ router = APIRouter(prefix="/response", tags=["response"])
 def block_ip(
     body: BlockIn,
     db: Session = Depends(get_db),  # noqa: B008
+    _auth: None = Depends(require_dashboard_token),
 ):
     """
     Block an IP address.
@@ -47,6 +49,7 @@ def unblock_ip(
     ip: str,
     body: UnblockIn = Depends(),  # noqa: B008
     db: Session = Depends(get_db),  # noqa: B008
+    _auth: None = Depends(require_dashboard_token),
 ):
     """
     Unblock an IP address.
@@ -68,6 +71,7 @@ def unblock_ip(
 def block_status(
     ip: str,
     db: Session = Depends(get_db),  # noqa: B008
+    _auth: None = Depends(require_dashboard_token),
 ):
     """
     Check whether an IP is currently blocked.
@@ -86,6 +90,7 @@ def list_audit_log(
     action: Annotated[str | None, Query(description="Filter by action type")] = None,
     limit: Annotated[int, Query(ge=1, le=500)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
+    _auth: None = Depends(require_dashboard_token),
 ):
     """
     List audit log entries, newest first.
