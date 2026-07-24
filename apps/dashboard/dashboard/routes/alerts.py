@@ -56,6 +56,27 @@ def alert_detail(alert_id: str):
     return render_template("alerts/detail.html", alert=alert)
 
 
+@bp.post("/<alert_id>/summary")
+def generate_alert_summary(alert_id: str):
+    """
+    Backs the "Generate Summary" button on the alert detail page. A plain
+    form POST — no JavaScript. Generates and persists the summary
+    server-side (once; a no-op if already generated), then redirects back
+    to the detail page, which renders `alert.summary` if present.
+    """
+    try:
+        data = api_client.post(f"/v1/alerts/{alert_id}/summary", {})
+        if not data.get("summary"):
+            flash(
+                "AI summary unavailable — summarization may be disabled or the request failed.",
+                "warning",
+            )
+    except Exception as exc:
+        flash(f"Could not generate summary: {exc}", "danger")
+
+    return redirect(url_for("alerts.alert_detail", alert_id=alert_id))
+
+
 @bp.post("/<alert_id>/triage")
 def triage_alert(alert_id: str):
     payload = {
