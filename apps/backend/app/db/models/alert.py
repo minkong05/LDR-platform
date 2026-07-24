@@ -39,6 +39,11 @@ class Alert(Base):
     closure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # LLM-generated summary (Feature 4) — null until generated once via
+    # POST /alerts/{id}/summary, then cached here permanently (no
+    # regeneration path — avoids repeat LLM calls for the same alert).
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     # store supporting context (e.g. top N event IDs, matched fields snapshot)
     context: Mapped[dict] = mapped_column(
         JSON().with_variant(JSONB(), "postgresql"), nullable=False, default=dict
