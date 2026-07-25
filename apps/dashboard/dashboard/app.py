@@ -1,6 +1,7 @@
 # 📄 apps/dashboard/dashboard/app.py
 
-from flask import Flask
+from flask import Flask, render_template
+from flask_wtf import CSRFProtect
 
 
 def create_app() -> Flask:
@@ -10,14 +11,25 @@ def create_app() -> Flask:
 
     app.config.from_object(Config)
 
+    CSRFProtect(app)
+
+    from dashboard.auth import login_required
     from dashboard.routes.alerts import bp as alerts_bp
+    from dashboard.routes.auth import bp as auth_bp
     from dashboard.routes.entities import bp as entities_bp
     from dashboard.routes.main import bp as main_bp
     from dashboard.routes.response import bp as response_bp  # NEW
 
     app.register_blueprint(main_bp)
+    app.register_blueprint(auth_bp)
     app.register_blueprint(alerts_bp, url_prefix="/alerts")
     app.register_blueprint(entities_bp, url_prefix="/entities")
     app.register_blueprint(response_bp, url_prefix="/response")  # NEW
+
+    app.before_request(login_required)
+
+    @app.errorhandler(403)
+    def forbidden(_exc):
+        return render_template("errors/403.html"), 403
 
     return app

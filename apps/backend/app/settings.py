@@ -14,8 +14,18 @@ class Settings(BaseSettings):
     AGENT_TOKEN: str = "dev-token"
     DASHBOARD_API_TOKEN: str = "dev-dashboard-token"
     INGEST_RATE_LIMIT: int = 1000
-
     EVENT_RETENTION_DAYS: int = 14
+
+    # ── LLM ────────────────────────────────────────────────────
+    LLM_API_KEY: str = ""
+    LLM_PROVIDER: str = "anthropic"
+    LLM_MODEL: str = "claude-haiku-4-5-20251001"
+    LLM_REQUEST_TIMEOUT_SECONDS: int = 10
+
+    @property
+    def llm_enabled(self) -> bool:
+        """True when an LLM API key is configured; empty key = disabled."""
+        return bool(self.LLM_API_KEY)
 
     # ── Email notifications ────────────────────────────────────
     SMTP_ENABLED: bool = True

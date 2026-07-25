@@ -22,6 +22,7 @@ class AlertOut(BaseModel):
     notes: str | None
     context: dict
     mitre: MitreMapping | None = None
+    summary: str | None = None
 
     @field_validator("mitre", mode="before")
     @classmethod

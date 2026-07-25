@@ -58,6 +58,8 @@ Agent → Ingest API → Normaliser → Event Store → Detection Worker
 - [x] Evidence export — ZIP bundle (summary.md + alerts.json + events.json)
 - [x] Response actions — block IP, unblock IP, block status — full audit trail
 - [x] Audit log dashboard — paginated view of all response actions
+- [x] LLM-assisted alert summarization — disabled by default, prompt-injection
+      defenses documented in `docs/ai-security-notes.md`
 
 
 ## Tech stack
@@ -181,14 +183,25 @@ These are intentional design decisions and environment constraints, not bugs.
   `blocked_ips` table to enforce.
 - **Single SMTP recipient.** Email notifications go to one address
   (`SMTP_TO`). Multi-recipient or on-call routing is not implemented.
-- **No authentication on the dashboard.** The Flask dashboard has no login
-  wall. Intended for internal/local use only.
+- **Dashboard auth is session-based with two static roles, not a real user
+  system.** Login checks credentials against `DASHBOARD_USERS`, an
+  env-configured `username:werkzeug-hash:role` list (not a database `users`
+  table). `admin` can block/unblock IPs; `analyst` is read/investigate/
+  triage/summarize only, and never sees the block/unblock controls. CSRF
+  protection (Flask-WTF) covers all state-changing forms. Not implemented:
+  OAuth/SSO, self-service password reset, and persistent login-attempt
+  lockout counters.
 - **No cross-rule correlation.** The detection engine evaluates each rule
   independently. There is no support for "fire when rule A AND rule B both
   trigger for the same IP".
 - **Redis is provisioned but unused.** The Docker Compose stack includes
   Redis, reserved for a future rate-limit store or task queue. The current
   in-memory rate limiter is used instead.
+- **AI alert summarization is disabled without an `LLM_API_KEY`.** With no
+  key set (the default, and CI's setting), the summary card doesn't appear
+  and the alert detail page loads exactly as before — no network calls are
+  attempted. See `docs/ai-security-notes.md` for the prompt-injection
+  threat model this feature defends against.
 
 
 ## Author
