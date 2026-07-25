@@ -61,6 +61,11 @@ level in `apps/backend/tests/conftest.py`: `apply_migrations_once` runs
 `RUN_INTEGRATION_TESTS=1`, and the events/alerts tables are truncated before
 every test function when that flag is set.
 
+`pytest -q` from the repo root runs both `apps/backend/tests` and
+`apps/dashboard/tests` in one pass — `testpaths`/`pythonpath` in
+`pyproject.toml` cover both packages, so there's no separate dashboard test
+command.
+
 ## Architecture
 
 Three Python services under `apps/`, one shared package installed as `app`
@@ -104,6 +109,20 @@ Agent → Ingest API → Normaliser → Event Store (Postgres) → Detection Wor
   - `services/notifications/email.py` — sends SMTP email for alerts whose
     severity is in `ALERT_EMAIL_SEVERITIES` (checked via
     `settings.alert_severity_set`).
+  - `services/summarization/` — optional LLM alert summarization
+    (`POST /v1/alerts/{id}/summary`), disabled unless `LLM_API_KEY` is set.
+    `prompt_builder.py` HTML-escapes every attacker-controlled log field
+    (user agent, path, referrer) into delimited `<log_field>` tags behind a
+    system-prompt boundary before it reaches the model; `client.py` wraps
+    the Anthropic Messages API call and never raises — disabled config,
+    timeouts, and bad responses all resolve to `None` so a failed/disabled
+    summarizer never breaks the alert page. Generates once per alert and
+    caches the result in `alerts.summary`. Full threat model in
+    `docs/ai-security-notes.md` — read it before touching this path.
+  - `services/simulation/` — `SimulationRunner`, driven by `app/cli.py
+    simulate`, fires synthetic attacks at a running backend and reports
+    which rules fired into `docs/detection-coverage.md`. Local/demo only;
+    refuses to run when `ENV=production`.
   - `services/storage/retention.py` — deletes events older than
     `EVENT_RETENTION_DAYS`, invoked via `app/cli.py retention`.
   - `app/db/models/` — SQLAlchemy 2 ORM models (`event.py`, `alert.py`,
@@ -116,8 +135,7 @@ Agent → Ingest API → Normaliser → Event Store (Postgres) → Detection Wor
   - Auth: `app/auth/agent.py` validates the `X-Agent-Token` header against
     `AGENT_TOKEN`/`AGENT_TOKEN_1`; `app/auth/ingest_limits.py` +
     `app/security/rate_limit.py` provide an in-memory rate limiter (reset in
-    tests via the `reset_rate_limiter` fixture). The dashboard itself has no
-    authentication — local/internal use only.
+    tests via the `reset_rate_limiter` fixture).
   - `app/settings.py` — Pydantic Settings loaded from `.env`; add new env
     vars here, not just in `.env.example`.
 
@@ -129,14 +147,23 @@ Agent → Ingest API → Normaliser → Event Store (Postgres) → Detection Wor
 
 - **`apps/dashboard`** — Flask 3 + Jinja2 + Bootstrap 5 (dark theme).
   `dashboard/app.py` is an app factory (`create_app`) registering blueprints
-  from `dashboard/routes/` (`main`, `alerts`, `entities`, `response`). The
-  dashboard is a pure API client — `dashboard/api_client.py` calls the
+  from `dashboard/routes/` (`main`, `auth`, `alerts`, `entities`, `response`).
+  The dashboard is a pure API client — `dashboard/api_client.py` calls the
   FastAPI backend over HTTP (`LDR_API_BASE`, e.g. `http://backend:8000` in
   Docker) and holds no direct DB connection. **The dashboard must be the
   sole ingress point**: e.g. the evidence ZIP is fetched server-side by the
   dashboard and streamed to the browser, never linked directly to the
   backend, because the backend's Docker-internal hostname isn't reachable
   from a browser (see `LEARNINGS.md` §8).
+  - Auth is session-based with two static roles, not a real user system:
+    `dashboard/auth.py` checks credentials against `DASHBOARD_USERS`, an
+    env-configured `username:werkzeug-hash:role` list (parsed in
+    `dashboard/config.py`), and a global `before_request` hook
+    (`login_required`) redirects any request outside `PUBLIC_ENDPOINTS` to
+    `/login`. `role_required(*roles)` gates individual views — `admin` can
+    block/unblock IPs via `routes/response.py`, `analyst` is
+    read/investigate/triage/summarize only. CSRF protection (`Flask-WTF`
+    `CSRFProtect`) covers all state-changing forms.
 
 - **`rules/`** — YAML detection rule definitions (`LDR-WEB-001`..`006`),
   validated by `app/domain/rules/rule_schema.py` at load time. New rules
