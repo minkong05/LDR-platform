@@ -183,8 +183,14 @@ These are intentional design decisions and environment constraints, not bugs.
   `blocked_ips` table to enforce.
 - **Single SMTP recipient.** Email notifications go to one address
   (`SMTP_TO`). Multi-recipient or on-call routing is not implemented.
-- **No authentication on the dashboard.** The Flask dashboard has no login
-  wall. Intended for internal/local use only.
+- **Dashboard auth is session-based with two static roles, not a real user
+  system.** Login checks credentials against `DASHBOARD_USERS`, an
+  env-configured `username:werkzeug-hash:role` list (not a database `users`
+  table). `admin` can block/unblock IPs; `analyst` is read/investigate/
+  triage/summarize only, and never sees the block/unblock controls. CSRF
+  protection (Flask-WTF) covers all state-changing forms. Not implemented:
+  OAuth/SSO, self-service password reset, and persistent login-attempt
+  lockout counters.
 - **No cross-rule correlation.** The detection engine evaluates each rule
   independently. There is no support for "fire when rule A AND rule B both
   trigger for the same IP".

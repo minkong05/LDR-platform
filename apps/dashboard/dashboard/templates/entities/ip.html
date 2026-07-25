@@ -76,8 +76,8 @@
       <i class="bi bi-download me-1"></i>Export Evidence
     </button>
 
-    {# NEW — Block / Unblock button #}
-    {% if block_status %}
+    {# NEW — Block / Unblock button (admin-only; analysts get a read-only view) #}
+    {% if block_status and session.get('role') == 'admin' %}
       {% if block_status.is_blocked %}
         <button
           type="button"
@@ -286,7 +286,8 @@
 
 </div>
 
-{# ── NEW: Block confirm modal ──────────────────────────────── #}
+{# ── NEW: Block confirm modal (admin-only) ─────────────────── #}
+{% if session.get('role') == 'admin' %}
 <div class="modal fade" id="blockModal" tabindex="-1" aria-labelledby="blockModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content bg-dark border border-danger">
@@ -303,6 +304,7 @@
       <div class="modal-footer border-secondary">
         <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
         <form method="post" action="{{ url_for('entities.block_ip', ip=ip) }}" class="d-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
           <input type="hidden" name="reason" value="Blocked via dashboard" />
           <button type="submit" class="btn btn-sm btn-danger">
             <i class="bi bi-slash-circle me-1"></i>Confirm Block
@@ -313,7 +315,7 @@
   </div>
 </div>
 
-{# ── NEW: Unblock confirm modal ────────────────────────────── #}
+{# ── NEW: Unblock confirm modal (admin-only) ───────────────── #}
 <div class="modal fade" id="unblockModal" tabindex="-1" aria-labelledby="unblockModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content bg-dark border border-success">
@@ -329,6 +331,7 @@
       <div class="modal-footer border-secondary">
         <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
         <form method="post" action="{{ url_for('entities.unblock_ip', ip=ip) }}" class="d-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
           <button type="submit" class="btn btn-sm btn-success">
             <i class="bi bi-check-circle me-1"></i>Confirm Unblock
           </button>
@@ -337,6 +340,7 @@
     </div>
   </div>
 </div>
+{% endif %}
 
 {% else %}
 <div class="card mt-4">

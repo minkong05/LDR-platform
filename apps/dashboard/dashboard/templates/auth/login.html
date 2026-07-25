@@ -1,0 +1,51 @@
+<!-- 📄 apps/dashboard/dashboard/templates/auth/login.html -->
+
+{% extends "base.html" %}
+{% block title %}Login — LDR{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-sm-8 col-md-5 col-lg-4">
+    <div class="card mt-5">
+      <div class="card-header text-muted small">
+        <i class="bi bi-shield-lock me-1"></i>Sign in
+      </div>
+      <div class="card-body">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="next" value="{{ next or '' }}" />
+
+          <div class="mb-3">
+            <label class="form-label small text-muted">Username</label>
+            <input
+              type="text"
+              name="username"
+              class="form-control"
+              autocomplete="username"
+              autofocus
+              required
+            />
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label small text-muted">Password</label>
+            <input
+              type="password"
+              name="password"
+              class="form-control"
+              autocomplete="current-password"
+              required
+            />
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-warning">
+              <i class="bi bi-box-arrow-in-right me-1"></i>Sign in
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
