@@ -58,6 +58,7 @@
       </p>
     {% else %}
       <form method="post" action="{{ url_for('alerts.generate_alert_summary', alert_id=alert.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
         <button type="submit" class="btn btn-sm btn-outline-info">
           <i class="bi bi-magic me-1"></i>Generate Summary
         </button>
@@ -206,6 +207,7 @@
           method="post"
           action="{{ url_for('alerts.triage_alert', alert_id=alert.id) }}"
         >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
           {# Status #}
           <div class="mb-3">
             <label class="form-label small text-muted">Status</label>

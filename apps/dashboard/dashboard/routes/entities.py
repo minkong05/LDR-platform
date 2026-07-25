@@ -4,6 +4,7 @@ import requests
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 
 from dashboard import api_client
+from dashboard.auth import role_required
 
 bp = Blueprint("entities", __name__)
 
@@ -75,6 +76,7 @@ def ip_evidence(ip: str):
 
 
 @bp.post("/ip/<ip>/block")
+@role_required("admin")
 def block_ip(ip: str):
     """
     Call the backend to block this IP and redirect back to the IP page.
@@ -98,6 +100,7 @@ def block_ip(ip: str):
 
 
 @bp.post("/ip/<ip>/unblock")
+@role_required("admin")
 def unblock_ip(ip: str):
     """
     Call the backend to unblock this IP and redirect back to the IP page.

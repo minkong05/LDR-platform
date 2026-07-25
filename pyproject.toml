@@ -29,8 +29,8 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["apps/backend/tests"]
-pythonpath = ["apps/backend"]
+testpaths = ["apps/backend/tests", "apps/dashboard/tests"]
+pythonpath = ["apps/backend", "apps/dashboard"]
 markers = [
   "integration: tests that require external services like Postgres",
 ]
