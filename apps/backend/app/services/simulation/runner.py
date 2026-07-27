@@ -16,12 +16,14 @@ class SimulationRunner:
         rules_dir: Path | None = None,
         base_url: str | None = None,
         agent_token: str | None = None,
+        dashboard_token: str | None = None,
     ):
         if settings.ENV == "production":
             raise RuntimeError("SimulationRunner refuses to run with settings.ENV=production")
 
         self.base_url = base_url or os.getenv("SIMULATION_BASE_URL", "http://localhost:8000")
         self.agent_token = agent_token or settings.AGENT_TOKEN
+        self.dashboard_token = dashboard_token or settings.DASHBOARD_API_TOKEN
         self.rules_dir = rules_dir or Path(os.getenv("RULES_DIR", "rules"))
         self.rules = load_rules(self.rules_dir)
 
@@ -51,11 +53,10 @@ class SimulationRunner:
             print(f"  ...{seconds - remaining}s elapsed, {remaining}s left", flush=True)
 
     def check_fired(self, rule_ids: list[str]) -> dict[str, bool]:
-        # GET /v1/alerts has no auth today (closed by Feature 2b, which will
-        # need X-Dashboard-Token instead) — no header required yet.
         response = httpx.get(
             f"{self.base_url}/v1/alerts",
             params={"limit": 200},
+            headers={"X-Dashboard-Token": self.dashboard_token},
             timeout=10,
         )
         response.raise_for_status()

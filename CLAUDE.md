@@ -11,7 +11,11 @@ lets an analyst investigate and respond (block/unblock IPs) through a
 dashboard with a full audit trail. v1.0.0 is feature-complete — see
 `README.md` for the roadmap and `LEARNINGS.md` for design rationale and past
 failure modes worth re-reading before touching detection, JSONB models, or
-the response/audit path.
+the response/audit path. A round of portfolio-driven additions on top of
+v1.0.0 (MITRE ATT&CK mapping, attack simulation, dashboard/API auth,
+LLM alert summarization, dashboard RBAC, audit hash chain) is tracked in
+`FEATURE_PLAN.md`; only the VirusTotal IP-reputation feature there (3b) is
+still unimplemented.
 
 ## Commands
 
@@ -48,6 +52,12 @@ cd apps/backend && alembic revision --autogenerate -m "message"
 
 # Retention cleanup (deletes events older than N days)
 ./scripts/retention.sh 14
+
+# Attack simulation + detection-coverage report (writes docs/detection-coverage.md)
+PYTHONPATH=apps/backend python -m app.cli simulate
+
+# Verify the audit log's tamper-evident hash chain
+PYTHONPATH=apps/backend python -m app.cli audit-verify
 ```
 
 CI (`.github/workflows/ci.yml`) runs on a real Postgres service container with
@@ -106,6 +116,21 @@ Agent → Ingest API → Normaliser → Event Store (Postgres) → Detection Wor
     writes to `blocked_ips` and `audit_log` tables. Enforcement is
     **database-only** (no iptables/Nginx/WAF integration) — see README
     "Known limitations".
+  - `services/response/audit_chain.py` — tamper-evident hash chain over
+    `audit_log`: `canonical_json()` + `compute_entry_hash(prev_hash,
+    **fields)` (sha256 hex) are called from `block.py:_write_audit()`
+    *before* the row is inserted (the ORM's `default=` callables for
+    `id`/`created_at` only populate at flush, too late for pre-insert
+    hashing); `get_latest_hash()` / `verify_chain()` walk the chain in
+    `created_at` order. Exposed via `GET /response/audit-log/verify` and
+    `app/cli.py audit-verify`; the dashboard's "Verify integrity" button
+    (`response/audit.html`, gated `role_required("admin")`) calls the same
+    endpoint. Rows written before this feature shipped have `NULL`
+    `prev_hash`/`entry_hash` — `verify_chain()` treats leading `NULL` rows
+    as legacy and starts checking from the first hashed one. No row lock on
+    "read latest hash, then insert" — a known, accepted race under
+    concurrent block/unblock calls (real fix is Postgres-only
+    `SELECT ... FOR UPDATE`, not testable on the SQLite unit-test path).
   - `services/notifications/email.py` — sends SMTP email for alerts whose
     severity is in `ALERT_EMAIL_SEVERITIES` (checked via
     `settings.alert_severity_set`).
@@ -133,9 +158,16 @@ Agent → Ingest API → Normaliser → Event Store (Postgres) → Detection Wor
     `.astext` accessor — use `cast(column, String)` instead for
     cross-dialect JSON field access.
   - Auth: `app/auth/agent.py` validates the `X-Agent-Token` header against
-    `AGENT_TOKEN`/`AGENT_TOKEN_1`; `app/auth/ingest_limits.py` +
-    `app/security/rate_limit.py` provide an in-memory rate limiter (reset in
-    tests via the `reset_rate_limiter` fixture).
+    `AGENT_TOKEN`/`AGENT_TOKEN_1` for ingest; `app/auth/dashboard.py`
+    (`require_dashboard_token`) validates `X-Dashboard-Token` against
+    `DASHBOARD_API_TOKEN` and is applied per-route (`Depends(...)`) on every
+    handler in `routers/alerts.py`, `entities.py`, and `response.py` —
+    `docker-compose.yml` publishes the backend on `8000:8000`, so without
+    this, block/unblock and alert data would be directly reachable on that
+    port with no auth at all, independent of dashboard login.
+    `app/auth/ingest_limits.py` + `app/security/rate_limit.py` provide an
+    in-memory rate limiter (reset in tests via the `reset_rate_limiter`
+    fixture).
   - `app/settings.py` — Pydantic Settings loaded from `.env`; add new env
     vars here, not just in `.env.example`.
 
@@ -150,7 +182,9 @@ Agent → Ingest API → Normaliser → Event Store (Postgres) → Detection Wor
   from `dashboard/routes/` (`main`, `auth`, `alerts`, `entities`, `response`).
   The dashboard is a pure API client — `dashboard/api_client.py` calls the
   FastAPI backend over HTTP (`LDR_API_BASE`, e.g. `http://backend:8000` in
-  Docker) and holds no direct DB connection. **The dashboard must be the
+  Docker), attaching `X-Dashboard-Token` (`DASHBOARD_API_TOKEN`) on every
+  call to satisfy `require_dashboard_token` above, and holds no direct DB
+  connection. **The dashboard must be the
   sole ingress point**: e.g. the evidence ZIP is fetched server-side by the
   dashboard and streamed to the browser, never linked directly to the
   backend, because the backend's Docker-internal hostname isn't reachable
