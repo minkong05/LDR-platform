@@ -29,6 +29,7 @@ def main() -> None:
     p_sim.add_argument("--rules-dir", type=str, default="rules")
     p_sim.add_argument("--base-url", type=str, default="http://localhost:8000")
     p_sim.add_argument("--agent-token", type=str, default=None)
+    p_sim.add_argument("--dashboard-token", type=str, default=None)
     p_sim.add_argument(
         "--wait-seconds",
         type=int,
@@ -51,6 +52,7 @@ def main() -> None:
             rules_dir=Path(args.rules_dir),
             base_url=args.base_url,
             agent_token=args.agent_token,
+            dashboard_token=args.dashboard_token,
         )
         attempted = runner.send_attacks(rule_ids=rule_ids)
         runner.wait_for_detection(args.wait_seconds)
