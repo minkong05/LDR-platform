@@ -52,12 +52,25 @@ Agent → Ingest API → Normaliser → Event Store → Detection Worker
 - [x] Event store + query endpoints — filter, paginate, IP summary
 - [x] Operational basics — structured logs, request-id, global error handling, retention CLI
 - [x] Detection engine — YAML rule loader, threshold windows, alert writer
+- [x] MITRE ATT&CK mapping — technique ID on each rule, deep-linked from the
+      alert detail page (sub-technique URLs handled correctly, e.g. T1110.004)
+- [x] Attack simulation tool — `app.cli simulate` fabricates per-rule attacks
+      and writes a regenerable `docs/detection-coverage.md` report
 - [x] Email notifications — high/critical alerts trigger SMTP email
+- [x] Backend API auth — `X-Dashboard-Token` gates alerts/entities/response
+      routers, independent of dashboard login (the backend port is exposed
+      on the host)
 - [x] Investigation dashboard — alert list, alert detail, triage workflow
+- [x] Dashboard session login + RBAC — `analyst`/`admin` roles, CSRF on all
+      state-changing forms; analyst can investigate/triage/summarize, only
+      admin can block/unblock or verify the audit chain
 - [x] IP investigation — event timeline, risk scoring, top paths, status codes
 - [x] Evidence export — ZIP bundle (summary.md + alerts.json + events.json)
 - [x] Response actions — block IP, unblock IP, block status — full audit trail
 - [x] Audit log dashboard — paginated view of all response actions
+- [x] Tamper-evident audit log — sha256 hash chain over `audit_log` entries,
+      verifiable via `app.cli audit-verify` or the dashboard's admin-only
+      "Verify integrity" button
 - [x] LLM-assisted alert summarization — disabled by default, prompt-injection
       defenses documented in `docs/ai-security-notes.md`
 
@@ -101,13 +114,25 @@ open http://localhost:5001
 
 ### Attack simulation & detection-coverage report
 
-`python -m app.cli simulate` (run from `apps/backend`) fabricates a batch of
+`PYTHONPATH=apps/backend python -m app.cli simulate` (run from the repo
+root — same convention as `scripts/retention.sh`) fabricates a batch of
 synthetic attacks per detection rule, waits for the worker to evaluate them,
 and checks which rules actually fired — the same idea as
 `trigger_all_rules.sh`, but a testable Python tool that also reports what
 this detection suite does *not* cover (see `mitre_reference.py`). Writes a
 regenerable report to `docs/detection-coverage.md`. Local/demo use only —
 refuses to run when `ENV=production`.
+
+
+### Verify the audit log's tamper-evident hash chain
+
+Every block/unblock action is chained via a sha256 hash over the previous
+entry (see Known limitations below). Verify it from the CLI or the
+dashboard's "Verify integrity" button (`/audit`, admin role only):
+
+```bash
+PYTHONPATH=apps/backend python -m app.cli audit-verify
+```
 
 
 ## Project structure
@@ -202,6 +227,14 @@ These are intentional design decisions and environment constraints, not bugs.
   and the alert detail page loads exactly as before — no network calls are
   attempted. See `docs/ai-security-notes.md` for the prompt-injection
   threat model this feature defends against.
+- **Audit log hash chain has no backfill.** `audit_log` rows written before
+  this feature shipped have `prev_hash`/`entry_hash` set to `NULL`. The
+  chain starts fresh at deploy time; `verify_chain()` treats leading `NULL`
+  rows as legacy and begins checking from the first hashed row. There is
+  also no row lock on the "read latest hash, then insert" sequence, so two
+  concurrent block/unblock calls could theoretically chain onto the same
+  prior hash — accepted as a demo-scale limitation (the real fix,
+  `SELECT ... FOR UPDATE`, is Postgres-only).
 
 
 ## Author

@@ -3,6 +3,7 @@ from pathlib import Path
 
 from app.db.session import SessionLocal
 from app.services.detection.runner import run_detection_once
+from app.services.response.audit_chain import verify_chain
 from app.services.simulation.runner import SimulationRunner
 from app.services.storage.retention import delete_old_events
 from app.settings import settings
@@ -19,6 +20,8 @@ def main() -> None:
     p_det.add_argument("--lookback-minutes", type=int, default=30)
     p_det.add_argument("--rules-dir", type=str, default="rules")
 
+    sub.add_parser("audit-verify", help="Verify the audit log's tamper-evident hash chain")
+
     p_sim = sub.add_parser(
         "simulate",
         help="Send synthetic attacks and write a detection-coverage report (local/demo only)",
@@ -26,6 +29,7 @@ def main() -> None:
     p_sim.add_argument("--rules-dir", type=str, default="rules")
     p_sim.add_argument("--base-url", type=str, default="http://localhost:8000")
     p_sim.add_argument("--agent-token", type=str, default=None)
+    p_sim.add_argument("--dashboard-token", type=str, default=None)
     p_sim.add_argument(
         "--wait-seconds",
         type=int,
@@ -48,6 +52,7 @@ def main() -> None:
             rules_dir=Path(args.rules_dir),
             base_url=args.base_url,
             agent_token=args.agent_token,
+            dashboard_token=args.dashboard_token,
         )
         attempted = runner.send_attacks(rule_ids=rule_ids)
         runner.wait_for_detection(args.wait_seconds)
@@ -76,6 +81,17 @@ def main() -> None:
                     lookback_minutes={args.lookback_minutes} \
                     rules_dir={args.rules_dir}"
             )
+
+        elif args.cmd == "audit-verify":
+            result = verify_chain(db)
+            if result.ok:
+                print(f"OK entries_checked={result.checked}")
+            else:
+                print(
+                    f"TAMPERED entries_checked={result.checked} "
+                    f"first_invalid_id={result.first_invalid_id} reason={result.reason}"
+                )
+                raise SystemExit(1)
     finally:
         db.close()
 
