@@ -79,3 +79,12 @@ class AuditLogListOut(BaseModel):
     items: list[AuditLogOut]
     limit: int
     offset: int
+
+
+class AuditVerifyOut(BaseModel):
+    """Response for GET /v1/response/audit-log/verify."""
+
+    ok: bool
+    checked: int
+    first_invalid_id: str | None = None
+    reason: str | None = None

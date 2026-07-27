@@ -34,6 +34,13 @@ class AuditLog(Base):
         JSON().with_variant(JSONB(), "postgresql"), nullable=False, default=dict
     )
 
+    # Hash-chain fields for tamper-evidence. Nullable because the chain starts
+    # fresh at deploy of this feature — there is no backfill for rows that
+    # predate it (see the audit_chain migration docstring).
+    prev_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+    entry_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
     __table_args__ = (
         Index("ix_audit_log_created_at", "created_at"),
         Index("ix_audit_log_action", "action"),

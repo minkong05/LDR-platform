@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from app.db.models.audit_log import AuditLog
 from app.db.models.blocked_ip import BlockedIP
+from app.services.response.audit_chain import compute_entry_hash, get_latest_hash
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -193,12 +195,36 @@ class BlockService:
         target_ip: str | None,
         detail: dict[str, Any],
     ) -> None:
-        """Append a row to audit_log. Always called before commit."""
-        entry = AuditLog(
+        """
+        Append a row to audit_log, chained onto the previous entry's hash.
+        Always called before commit.
+
+        id/created_at are constructed here rather than left to ORM
+        `default=` callables, which only populate at flush — too late to
+        feed into compute_entry_hash before the row is added.
+        """
+        entry_id = uuid.uuid4()
+        created_at = _now()
+        prev_hash = get_latest_hash(self._db)
+        entry_hash = compute_entry_hash(
+            prev_hash,
+            id=entry_id,
+            created_at=created_at,
             action=action,
             actor=actor,
             target_ip=target_ip,
             detail=detail,
+        )
+
+        entry = AuditLog(
+            id=entry_id,
+            created_at=created_at,
+            action=action,
+            actor=actor,
+            target_ip=target_ip,
+            detail=detail,
+            prev_hash=prev_hash,
+            entry_hash=entry_hash,
         )
         self._db.add(entry)
         # No commit here — caller commits after all writes are done.

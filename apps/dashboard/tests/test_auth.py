@@ -78,3 +78,16 @@ def test_admin_allowed_to_unblock(admin_client, mock_api):
     assert resp.status_code == 302
     assert mock_api["post"]
     assert mock_api["post"][0][0] == "/v1/response/unblock/1.2.3.4"
+
+
+def test_analyst_forbidden_from_audit_verify(analyst_client, mock_api):
+    resp = analyst_client.get("/response/audit/verify")
+    assert resp.status_code == 403
+    assert mock_api["get"] == []
+
+
+def test_admin_allowed_to_audit_verify(admin_client, mock_api):
+    resp = admin_client.get("/response/audit/verify")
+    assert resp.status_code == 302
+    assert mock_api["get"]
+    assert mock_api["get"][0][0] == "/v1/response/audit-log/verify"
