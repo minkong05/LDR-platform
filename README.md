@@ -202,6 +202,14 @@ These are intentional design decisions and environment constraints, not bugs.
   and the alert detail page loads exactly as before — no network calls are
   attempted. See `docs/ai-security-notes.md` for the prompt-injection
   threat model this feature defends against.
+- **Audit log hash chain has no backfill.** `audit_log` rows written before
+  this feature shipped have `prev_hash`/`entry_hash` set to `NULL`. The
+  chain starts fresh at deploy time; `verify_chain()` treats leading `NULL`
+  rows as legacy and begins checking from the first hashed row. There is
+  also no row lock on the "read latest hash, then insert" sequence, so two
+  concurrent block/unblock calls could theoretically chain onto the same
+  prior hash — accepted as a demo-scale limitation (the real fix,
+  `SELECT ... FOR UPDATE`, is Postgres-only).
 
 
 ## Author

@@ -3,6 +3,7 @@ from pathlib import Path
 
 from app.db.session import SessionLocal
 from app.services.detection.runner import run_detection_once
+from app.services.response.audit_chain import verify_chain
 from app.services.simulation.runner import SimulationRunner
 from app.services.storage.retention import delete_old_events
 from app.settings import settings
@@ -18,6 +19,8 @@ def main() -> None:
     p_det = sub.add_parser("detect", help="Run detection once (load rules/*.yml and write alerts)")
     p_det.add_argument("--lookback-minutes", type=int, default=30)
     p_det.add_argument("--rules-dir", type=str, default="rules")
+
+    sub.add_parser("audit-verify", help="Verify the audit log's tamper-evident hash chain")
 
     p_sim = sub.add_parser(
         "simulate",
@@ -76,6 +79,17 @@ def main() -> None:
                     lookback_minutes={args.lookback_minutes} \
                     rules_dir={args.rules_dir}"
             )
+
+        elif args.cmd == "audit-verify":
+            result = verify_chain(db)
+            if result.ok:
+                print(f"OK entries_checked={result.checked}")
+            else:
+                print(
+                    f"TAMPERED entries_checked={result.checked} "
+                    f"first_invalid_id={result.first_invalid_id} reason={result.reason}"
+                )
+                raise SystemExit(1)
     finally:
         db.close()
 

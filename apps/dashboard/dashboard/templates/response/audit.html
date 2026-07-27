@@ -10,9 +10,16 @@
   <h4 class="mb-0">
     <i class="bi bi-journal-text text-warning me-2"></i>Audit Log
   </h4>
-  <span class="text-muted small">
-    Response actions taken by analysts — block, unblock, and no-ops.
-  </span>
+  <div class="d-flex align-items-center gap-3">
+    <span class="text-muted small">
+      Response actions taken by analysts — block, unblock, and no-ops.
+    </span>
+    {% if session.get('role') == 'admin' %}
+      <a href="{{ url_for('response.verify_audit_log') }}" class="btn btn-sm btn-outline-warning">
+        <i class="bi bi-shield-check me-1"></i>Verify integrity
+      </a>
+    {% endif %}
+  </div>
 </div>
 
 {# ── Filter bar ───────────────────────────────────────────── #}

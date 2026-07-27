@@ -8,11 +8,13 @@ from app.deps import get_db
 from app.schemas.response import (
     AuditLogListOut,
     AuditLogOut,
+    AuditVerifyOut,
     BlockIn,
     BlockOut,
     BlockStatusOut,
     UnblockIn,
 )
+from app.services.response.audit_chain import verify_chain
 from app.services.response.block import BlockService
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import desc, select
@@ -120,3 +122,25 @@ def list_audit_log(
     ]
 
     return AuditLogListOut(items=items, limit=limit, offset=offset)
+
+
+@router.get("/audit-log/verify", response_model=AuditVerifyOut)
+def verify_audit_log(
+    db: Session = Depends(get_db),  # noqa: B008
+    _auth: None = Depends(require_dashboard_token),
+):
+    """
+    Verify the audit log's tamper-evident hash chain.
+
+    Read-only — does not write an audit entry. Recomputes each row's hash
+    from its current field values and confirms it chains from the prior
+    row's hash, in created_at order. Rows written before this feature
+    shipped (entry_hash IS NULL) are treated as legacy and skipped.
+    """
+    result = verify_chain(db)
+    return AuditVerifyOut(
+        ok=result.ok,
+        checked=result.checked,
+        first_invalid_id=result.first_invalid_id,
+        reason=result.reason,
+    )
