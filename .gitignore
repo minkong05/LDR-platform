@@ -234,3 +234,4 @@ echo "evidence_*.zip" >> .gitignore
 # personal claude
 FEATURE_PLAN.md
 AGENTS.md
+REPO-BRIEF.md
