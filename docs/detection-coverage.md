@@ -1,6 +1,6 @@
 # Detection Coverage Report
 
-Generated: 2026-07-27T13:18:17.673619+00:00
+Generated: 2026-10-01T17:16:19.557276+00:00
 
 **6/6 rules fired** during this simulation run.
 
