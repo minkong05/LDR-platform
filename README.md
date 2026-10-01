@@ -15,7 +15,9 @@ them into an ECS-inspired schema, runs YAML-based detection rules, surfaces
 alerts in an investigation dashboard, and supports safe response actions with
 a full audit trail.
 
-> **Status: v1.0.0 complete.** All four months of the roadmap are done.
+> **Status: v1.1.0 — complete.** All four months of the roadmap are done, plus
+> MITRE ATT&CK mapping, attack simulation, dashboard RBAC, LLM alert summaries
+> and a tamper-evident audit log.
 
 
 ## What it does

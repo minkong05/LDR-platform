@@ -14,9 +14,10 @@ failure modes worth re-reading before touching detection, JSONB models, or
 the response/audit path. A round of portfolio-driven additions on top of
 v1.0.0 (MITRE ATT&CK mapping, attack simulation, dashboard/API auth,
 LLM alert summarization, dashboard RBAC, audit hash chain) is tracked in
-`FEATURE_PLAN.md`. The VirusTotal IP-reputation feature there (3b) was
-descoped and is not implemented — the project is closed without it; the
-design is kept in `FEATURE_PLAN.md` for reference only.
+`FEATURE_PLAN.md`, a local-only file that is gitignored and not in the
+repo. The VirusTotal IP-reputation feature there (3b) was descoped and is
+not implemented — the project is closed without it; the design is kept in
+that local file for reference only.
 
 ## Commands
 
