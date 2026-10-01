@@ -1,9 +1,8 @@
 # Architecture
 
-Current state of the LDR Platform (v1.0.0 plus the portfolio-enrichment
-features in `FEATURE_PLAN.md` — MITRE mapping, attack simulation, dashboard
-+ API auth, LLM summarization, dashboard RBAC, and the audit hash chain are
-all shipped; only VirusTotal IP-reputation enrichment is outstanding).
+Current state of the LDR Platform (v1.1.0: the v1.0.0 core plus MITRE
+ATT&CK mapping, attack simulation, dashboard + API auth, LLM summarization,
+dashboard RBAC, and the audit hash chain — all shipped).
 
 ## Stack
 
@@ -86,8 +85,7 @@ simply absent rather than erroring.
   is attempted. See `docs/ai-security-notes.md` for the prompt-injection
   threat model (attacker-controlled fields like `user_agent`/`url.path`
   flow into the prompt) and mitigations.
-- **VirusTotal IP reputation** — planned (`FEATURE_PLAN.md` Feature 3b),
-  not yet implemented.
+- **VirusTotal IP reputation** — considered and descoped; not implemented.
 
 ## Guardrails
 
